@@ -12,9 +12,6 @@ dist/
 core
 core.*
 
-# Ignore shell scripts
-*.sh
-
 # Ignore swap files
 *.swp
 
