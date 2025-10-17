@@ -7,6 +7,7 @@ import logging
 from omegaconf import OmegaConf
 import os
 import sys
+sys.path.append("/lustre/gale/stf218/scratch/emin/dinov3")
 from typing import Any
 
 from dinov3.eval.segmentation.config import SegmentationConfig
@@ -16,6 +17,8 @@ from dinov3.eval.helpers import args_dict_to_dataclass, cli_parser, write_result
 from dinov3.eval.setup import load_model_and_context
 from dinov3.run.init import job_context
 
+import torch
+torch.hub.set_dir("/lustre/gale/stf218/scratch/emin/torch_hub")
 
 logger = logging.getLogger("dinov3")
 
@@ -23,10 +26,7 @@ RESULTS_FILENAME = "results-semantic-segmentation.csv"
 MAIN_METRICS = ["mIoU"]
 
 
-def run_segmentation_with_dinov3(
-    backbone,
-    config,
-):
+def run_segmentation_with_dinov3(backbone, config):
     if config.load_from:
         logger.info("Testing model performance on a pretrained decoder head")
         return test_segmentation(backbone=backbone, config=config)
@@ -41,13 +41,7 @@ def benchmark_launcher(eval_args: dict[str, object]) -> dict[str, Any]:
         output_dir = eval_args["output_dir"]
         base_config = OmegaConf.load(base_config_path)
         structured_config = OmegaConf.structured(SegmentationConfig)
-        dataclass_config: SegmentationConfig = OmegaConf.to_object(
-            OmegaConf.merge(
-                structured_config,
-                base_config,
-                OmegaConf.create(eval_args),
-            )
-        )
+        dataclass_config: SegmentationConfig = OmegaConf.to_object(OmegaConf.merge(structured_config, base_config, OmegaConf.create(eval_args)))
     else:  # either using default values, or only adding some args to the command line
         dataclass_config, output_dir = args_dict_to_dataclass(eval_args=eval_args, config_dataclass=SegmentationConfig)
     backbone = None
@@ -55,6 +49,7 @@ def benchmark_launcher(eval_args: dict[str, object]) -> dict[str, Any]:
         backbone, _ = load_model_and_context(dataclass_config.model, output_dir=output_dir)
     else:
         assert dataclass_config.load_from == "dinov3_vit7b16_ms"
+
     logger.info(f"Segmentation Config:\n{OmegaConf.to_yaml(dataclass_config)}")
     segmentation_file_path = os.path.join(output_dir, "segmentation_config.yaml")
     OmegaConf.save(config=dataclass_config, f=segmentation_file_path)
@@ -64,6 +59,7 @@ def benchmark_launcher(eval_args: dict[str, object]) -> dict[str, Any]:
 
 
 def main(argv=None):
+
     if argv is None:
         argv = sys.argv[1:]
     eval_args = cli_parser(argv)

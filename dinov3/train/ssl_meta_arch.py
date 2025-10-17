@@ -216,13 +216,9 @@ class SSLMetaArch(nn.Module):
             self.gram_params_lists = None
 
             if self.gram_ema_teacher and self.gram_ckpt is not None:
-                raise ValueError(
-                    "Cannot use both `gram.ema_teacher` and `gram.ckpt` at the same time. Please set one of them to False."
-                )
+                raise ValueError("Cannot use both `gram.ema_teacher` and `gram.ckpt` at the same time. Please set one of them to False.")
             if self.gram_ckpt is None and self.gram_it_load_ema_teacher < 0:
-                raise ValueError(
-                    "If no gram checkpoint is provided, `gram.it_load_ema_teacher` must be set to a non-negative value."
-                )
+                raise ValueError("If no gram checkpoint is provided, `gram.it_load_ema_teacher` must be set to a non-negative value.")
 
             assert not (self.gram_ema_teacher and self.gram_rep_update)
             assert self.gram_tokens_used in ["all", "masked", "unmasked"]
@@ -256,9 +252,7 @@ class SSLMetaArch(nn.Module):
             logger.info(f"OPTIONS -- global crops student/teacher size: {self.student_crop_size}")
             logger.info(f"OPTIONS -- global crops GRAM teacher size: {cfg.crops.gram_teacher_crops_size}")
             logger.info(f"OPTIONS -- global crops GRAM teacher resize method: {cfg.gram.global_teacher_resize_method}")
-            logger.info(
-                f"OPTIONS -- global crops GRAM teacher resize antialias: {cfg.gram.global_teacher_resize_antialias}"
-            )
+            logger.info(f"OPTIONS -- global crops GRAM teacher resize antialias: {cfg.gram.global_teacher_resize_antialias}")
 
     def _setup_distillation(self):
         logger.info(f"Performing distillation from {self.cfg.distillation.full_cfg_path}")
@@ -347,9 +341,7 @@ class SSLMetaArch(nn.Module):
                 self.teacher.ibot_head.init_weights()
             logger.info(f"Performing distillation from: {self.teacher}")
 
-    def forward_backward(
-        self, data, *, teacher_temp, iteration=0, **ignored_kwargs
-    ) -> tuple[Tensor, dict[str, float | Tensor]]:
+    def forward_backward(self, data, *, teacher_temp, iteration=0, **ignored_kwargs) -> tuple[Tensor, dict[str, float | Tensor]]:
         del ignored_kwargs
         metrics_dict = {}
 
@@ -369,9 +361,7 @@ class SSLMetaArch(nn.Module):
         n_masked_patches_tensor = data["n_masked_patches"].cuda(non_blocking=True)
 
         if self.has_gram_teacher:
-            assert "collated_gram_teacher_crops" in data, (
-                "no gram teacher crops in the data, have you set cfg.crops.gram_teacher_crops_size?"
-            )
+            assert "collated_gram_teacher_crops" in data, "no gram teacher crops in the data, have you set cfg.crops.gram_teacher_crops_size?"
             gram_teacher_crops = data["collated_gram_teacher_crops"].cuda(non_blocking=True)
         else:
             gram_teacher_crops = None

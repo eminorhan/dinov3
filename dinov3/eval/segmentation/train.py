@@ -109,23 +109,23 @@ def train_step(
     model_dtype,
     global_step,
 ):
-    # a) load batch
+    # load batch
     batch_img, (_, gt) = batch
     batch_img = batch_img.to(device)  # B x C x h x w
     gt = gt.to(device)  # B x (num_classes if multilabel) x h x w
     optimizer.zero_grad(set_to_none=True)
 
-    # b) forward pass
+    # forward pass
     with torch.autocast("cuda", dtype=model_dtype, enabled=True if model_dtype is not None else False):
         pred = segmentation_model(batch_img)  # B x num_classes x h x w
         gt = torch.squeeze(gt).long()  # Adapt gt dimension to enable loss calculation
 
-    # c) compute loss
+    # compute loss
     if gt.shape[-2:] != pred.shape[-2:]:
         pred = torch.nn.functional.interpolate(input=pred, size=gt.shape[-2:], mode="bilinear", align_corners=False)
     loss = criterion(pred, gt)
 
-    # d) optimization
+    # optimization
     if scaler is not None:
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)
@@ -143,12 +143,9 @@ def train_step(
     return loss
 
 
-def train_segmentation(
-    backbone,
-    config,
-):
+def train_segmentation(backbone, config):
     assert config.decoder_head.type == "linear", "Only linear head is supported for training"
-    # 1- load the segmentation decoder
+    # load the segmentation decoder
     logger.info("Initializing the segmentation model")
     segmentation_model = build_segmentation_decoder(
         backbone,
@@ -159,13 +156,11 @@ def train_segmentation(
     )
     global_device = distributed.get_rank()
     local_device = torch.cuda.current_device()
-    segmentation_model = torch.nn.parallel.DistributedDataParallel(
-        segmentation_model.to(local_device), device_ids=[local_device]
-    )  # should be local rank
+    segmentation_model = torch.nn.parallel.DistributedDataParallel(segmentation_model.to(local_device), device_ids=[local_device])  # should be local rank
     model_parameters = filter(lambda p: p.requires_grad, segmentation_model.parameters())
     logger.info(f"Number of trainable parameters: {sum(p.numel() for p in model_parameters)}")
 
-    # 2- create data transforms + dataloaders
+    # create data transforms + dataloaders
     train_transforms = make_segmentation_train_transforms(
         img_size=config.transforms.train.img_size,
         random_img_size_ratio_range=config.transforms.train.random_img_size_ratio_range,
@@ -173,23 +168,16 @@ def train_segmentation(
         flip_prob=config.transforms.train.flip_prob,
         reduce_zero_label=config.eval.reduce_zero_label,
     )
-    val_transforms = make_segmentation_eval_transforms(
-        img_size=config.transforms.eval.img_size,
-        inference_mode=config.eval.mode,
-    )
+    val_transforms = make_segmentation_eval_transforms(img_size=config.transforms.eval.img_size, inference_mode=config.eval.mode)
 
-    train_dataset = DatasetWithEnumeratedTargets(
-        make_dataset(
-            dataset_str=f"{config.datasets.train}:root={config.datasets.root}",
-            transforms=train_transforms,
-        )
-    )
+    train_dataset = DatasetWithEnumeratedTargets(make_dataset(dataset_str=f"{config.datasets.train}:root={config.datasets.root}", transforms=train_transforms))
+    
+    # set train sampler type
     train_sampler_type = None
     if distributed.is_enabled():
         train_sampler_type = SamplerType.DISTRIBUTED
-    init_fn = partial(
-        worker_init_fn, num_workers=config.num_workers, rank=global_device, seed=config.seed + global_device
-    )
+    
+    init_fn = partial(worker_init_fn, num_workers=config.num_workers, rank=global_device, seed=config.seed + global_device)
     train_dataloader = InfiniteDataloader(
         make_data_loader(
             dataset=train_dataset,
@@ -202,15 +190,13 @@ def train_segmentation(
         )
     )
 
-    val_dataset = DatasetWithEnumeratedTargets(
-        make_dataset(
-            dataset_str=f"{config.datasets.val}:root={config.datasets.root}",
-            transforms=val_transforms,
-        )
-    )
+    val_dataset = DatasetWithEnumeratedTargets(make_dataset(dataset_str=f"{config.datasets.val}:root={config.datasets.root}", transforms=val_transforms))
+    
+    # set val sampler type
     val_sampler_type = None
     if distributed.is_enabled():
         val_sampler_type = SamplerType.DISTRIBUTED
+
     val_dataloader = make_data_loader(
         dataset=val_dataset,
         batch_size=1,
@@ -221,7 +207,7 @@ def train_segmentation(
         persistent_workers=True,
     )
 
-    # 3- define and create scaler, optimizer, scheduler, loss
+    # define and create scaler, optimizer, scheduler, loss
     scaler = None
     if config.model_dtype.autocast_dtype is not None:
         scaler = torch.amp.GradScaler("cuda")
@@ -236,6 +222,7 @@ def train_segmentation(
             }
         ]
     )
+
     scheduler = build_scheduler(
         config.scheduler.type,
         optimizer=optimizer,
@@ -243,14 +230,13 @@ def train_segmentation(
         total_iter=config.scheduler.total_iter,
         constructor_kwargs=config.scheduler.constructor_kwargs,
     )
-    criterion = MultiSegmentationLoss(
-        diceloss_weight=config.train.diceloss_weight, celoss_weight=config.train.celoss_weight
-    )
+    
+    criterion = MultiSegmentationLoss(diceloss_weight=config.train.diceloss_weight, celoss_weight=config.train.celoss_weight)
     total_iter = config.scheduler.total_iter
     global_step = 0
     global_best_metric_values = {metric: 0.0 for metric in SEGMENTATION_METRICS}
 
-    # 5- train the model
+    # train the model
     metric_logger = MetricLogger(delimiter="  ")
     metric_logger.add_meter("loss", SmoothedValue(window_size=4, fmt="{value:.3f}"))
     for batch in metric_logger.log_every(
@@ -313,6 +299,7 @@ def train_segmentation(
             if is_better:
                 logger.info(f"New best metrics at Step {global_step}: {best_metric_values_dict}")
                 global_best_metric_values = best_metric_values_dict
+
     logger.info("Training is done!")
     # segmentation_model is a module list of [backbone, decoder]
     # Only save the decoder head

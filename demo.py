@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from functools import partial
 from dinov3.eval.segmentation.inference import make_inference
+from dinov3.eval.segmentation.models import build_segmentation_decoder
 
 def get_img():
     import requests
@@ -23,9 +24,11 @@ def make_transform(resize_size: int | list[int] = 768):
 REPO_DIR = "/lustre/gale/stf218/scratch/emin/dinov3"
 torch.hub.set_dir("/lustre/gale/stf218/scratch/emin/torch_hub")
 # segmentor = torch.hub.load(REPO_DIR, 'dinov3_vit7b16_ms', source="local", weights="dinov3_vit7b16_ade20k_m2f_head-bf307cb1.pth", backbone_weights="dinov3_vit7b16_pretrain_lvd1689m-a955f4ea.pth")
-segmentor = torch.hub.load(REPO_DIR, 'dinov3_vit7b16_ms', source="local")
+# segmentor = torch.hub.load(REPO_DIR, 'dinov3_vit7b16_ms', source="local", pretrained=False) #weights=None, backbone_weights=None)
+backbone = torch.hub.load(REPO_DIR, 'dinov3_vit7b16', source="local", pretrained=False) #weights=None, backbone_weights=None)
+segmentor = build_segmentation_decoder(backbone)
 print(f"Loaded model...")
-print(f"Model architecture: {segmentor}") 
+print(f"Model architecture: {segmentor}")
 
 img_size = 896
 img  = get_img()
@@ -33,7 +36,10 @@ transform = make_transform(img_size)
 with torch.inference_mode():
     with torch.autocast('cuda', dtype=torch.bfloat16):
         batch_img = transform(img)[None]
+        print(f"Batch_img shape: {batch_img.shape}")
         pred_vit7b = segmentor(batch_img)  # raw predictions 
+        print(f"pred_vit7b shape: {pred_vit7b.shape}")
+        # print(f"Raw prediction masks shape: {pred_vit7b['pred_masks'].shape}")
         # actual segmentation map
         segmentation_map_vit7b = make_inference(
             batch_img,

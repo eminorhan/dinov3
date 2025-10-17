@@ -40,7 +40,8 @@ def load_model_and_context(model_config: ModelConfig, output_dir: str) -> tuple[
             repo = "dinov2"
         else:
             raise ValueError
-        model = torch.hub.load(f"facebookresearch/{repo}", model_config.dino_hub)
+        print(f"Mode_config.dino_hub: {model_config.dino_hub}")    
+        model = torch.hub.load("/lustre/gale/stf218/scratch/emin/dinov3", model_config.dino_hub, source="local")
         base_model_context = BaseModelContext(autocast_dtype=torch.float)
     else:
         model, base_model_context = setup_and_build_model(

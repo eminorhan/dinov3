@@ -186,11 +186,7 @@ def _make_dinov3_convnext(
         if type(weights) is Weights and weights not in {Weights.LVD1689M, Weights.SAT493M}:
             raise ValueError(f"Unsupported weights for the backbone: {weights}")
         elif type(weights) is Weights:
-            url = _make_dinov3_convnext_model_url(
-                compact_arch_name=compact_arch_name,
-                weights=weights,
-                hash=hash,
-            )
+            url = _make_dinov3_convnext_model_url(compact_arch_name=compact_arch_name, weights=weights, hash=hash)
         else:
             url = convert_path_or_url_to_url(weights)
         state_dict = torch.hub.load_state_dict_from_url(url, map_location="cpu")

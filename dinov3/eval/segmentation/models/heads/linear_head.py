@@ -15,7 +15,6 @@ class LinearHead(nn.Module):
         self,
         in_channels,
         n_output_channels,
-        use_batchnorm=True,
         use_cls_token=False,
     ):
         super().__init__()
@@ -25,7 +24,6 @@ class LinearHead(nn.Module):
             self.channels *= 2  # concatenate CLS to patch tokens
         self.n_output_channels = n_output_channels
         self.use_cls_token = use_cls_token
-        self.batchnorm_layer = nn.SyncBatchNorm(self.channels) if use_batchnorm else nn.Identity(self.channels)
         self.conv = nn.Conv2d(self.channels, self.n_output_channels, kernel_size=1, padding=0, stride=1)
         self.dropout = nn.Dropout2d(0.1)
         nn.init.normal_(self.conv.weight, mean=0, std=0.01)
@@ -56,8 +54,7 @@ class LinearHead(nn.Module):
         Args:
             inputs (list[Tensor]): List of multi-level img features.
         Returns:
-            feats (Tensor): A tensor of shape (batch_size, self.channels,
-                H, W) which is feature map for last layer of decoder head.
+            feats (Tensor): A tensor of shape (batch_size, self.channels, H, W) which is feature map for last layer of decoder head.
         """
         # accept lists (for cls token)
         inputs = list(inputs)
@@ -80,7 +77,7 @@ class LinearHead(nn.Module):
         """Forward function."""
         output = self._forward_feature(inputs)
         output = self.dropout(output)
-        output = self.batchnorm_layer(output)
+        output = F.layer_norm(output, output.shape[-3:])
         output = self.conv(output)
         return output
 
@@ -91,7 +88,7 @@ class LinearHead(nn.Module):
         for computing metrics.
         """
         x = self._forward_feature(x)
-        x = self.batchnorm_layer(x)
+        x = F.layer_norm(x, x.shape[-3:])
         x = self.conv(x)
         x = F.interpolate(input=x, size=rescale_to, mode="bilinear")
         return x

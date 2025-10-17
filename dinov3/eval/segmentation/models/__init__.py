@@ -23,7 +23,6 @@ class BackboneLayersSet(Enum):
     FOUR_LAST = "FOUR_LAST"  # extracting the four last layers
     FOUR_EVEN_INTERVALS = "FOUR_EVEN_INTERVALS"  # extracting outputs every 1/4 of the total number of blocks
 
-
 def _get_backbone_out_indices(
     model: torch.nn.Module,
     backbone_out_layers: BackboneLayersSet = BackboneLayersSet.FOUR_EVEN_INTERVALS,
@@ -84,10 +83,7 @@ def build_segmentation_decoder(
     backbone_indices_to_use = _get_backbone_out_indices(backbone_model, backbone_out_layers)
     autocast_ctx = partial(torch.autocast, device_type="cuda", enabled=True, dtype=autocast_dtype)
     if decoder_type == "m2f":
-        backbone_model = DINOv3_Adapter(
-            backbone_model,
-            interaction_indexes=backbone_indices_to_use,
-        )
+        backbone_model = DINOv3_Adapter(backbone_model, interaction_indexes=backbone_indices_to_use)
         backbone_model.eval()
         embed_dim = backbone_model.backbone.embed_dim
         patch_size = backbone_model.patch_size
@@ -118,20 +114,9 @@ def build_segmentation_decoder(
                 embed_dim = [embed_dim] * 4
             else:
                 embed_dim = [embed_dim]
-        decoder = LinearHead(
-            in_channels=embed_dim,
-            n_output_channels=num_classes,
-        )
+        decoder = LinearHead(in_channels=embed_dim, n_output_channels=num_classes)
     else:
         raise ValueError(f'Unsupported decoder "{decoder_type}"')
 
-    segmentation_model = FeatureDecoder(
-        torch.nn.ModuleList(
-            [
-                backbone_model,
-                decoder,
-            ]
-        ),
-        autocast_ctx=autocast_ctx,
-    )
+    segmentation_model = FeatureDecoder(torch.nn.ModuleList([backbone_model, decoder]), autocast_ctx=autocast_ctx)
     return segmentation_model

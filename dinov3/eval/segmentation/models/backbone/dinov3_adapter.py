@@ -55,9 +55,7 @@ def get_reference_points(spatial_shapes, device):
 
 def deform_inputs(x, patch_size):
     bs, c, h, w = x.shape
-    spatial_shapes = torch.as_tensor(
-        [(h // 8, w // 8), (h // 16, w // 16), (h // 32, w // 32)], dtype=torch.long, device=x.device
-    )
+    spatial_shapes = torch.as_tensor([(h // 8, w // 8), (h // 16, w // 16), (h // 32, w // 32)], dtype=torch.long, device=x.device)
     level_start_index = torch.cat((spatial_shapes.new_zeros((1,)), spatial_shapes.prod(1).cumsum(0)[:-1]))
     reference_points = get_reference_points([(h // patch_size, w // patch_size)], x.device)
     deform_inputs1 = [reference_points, spatial_shapes, level_start_index]

@@ -50,48 +50,20 @@ logger = logging.getLogger("dinov3")
 def get_args_parser(add_help: bool = True):
     parser = argparse.ArgumentParser("DINOv3 training", add_help=add_help)
     parser.add_argument("--config-file", default="", metavar="FILE", help="path to config file")
-    parser.add_argument(
-        "--no-resume",
-        action="store_true",
-        help="Whether to not attempt to resume from the checkpoint directory. ",
-    )
+    parser.add_argument("--no-resume", action="store_true", help="Whether to not attempt to resume from the checkpoint directory.")
     parser.add_argument("--eval-only", action="store_true", help="perform evaluation only")
     parser.add_argument("--eval", type=str, default="", help="Eval type to perform")
-    parser.add_argument(
-        "--eval_pretrained_weights",
-        type=str,
-        default="",
-        help="Path to pretrained weights",
-    )
-    parser.add_argument(
-        "opts",
-        help="""
-Modify config options at the end of the command. For Yacs configs, use
-space-separated "PATH.KEY VALUE" pairs.
-For python-based LazyConfig, use "path.key=value".
-        """.strip(),
-        default=None,
-        nargs=argparse.REMAINDER,
-    )
-    parser.add_argument(
-        "--output-dir",
-        default="./local_dino",
-        type=str,
-        help="Path to save logs and checkpoints.",
-    )
+    parser.add_argument("--eval_pretrained_weights", type=str, default="", help="Path to pretrained weights")
+    parser.add_argument("--output-dir", default="./local_dino", type=str, help="Path to save logs and checkpoints.")
     parser.add_argument("--seed", default=0, type=int, help="RNG seed")
-    parser.add_argument(
-        "--benchmark-codebase",
-        action="store_true",
-        help="test the codebase for a few iters",
-    )
+    parser.add_argument("--benchmark-codebase", action="store_true", help="test the codebase for a few iters")
     parser.add_argument("--test-ibot", action="store_true", help="test ibot")
     parser.add_argument("--profiling", action="store_true", help="do profiling")
     parser.add_argument("--dump-fsdp-weights", action="store_true", help="dump fsdp weights")
     parser.add_argument("--record_ref_losses", action="store_true", help="record reference losses")
     parser.add_argument("--ref_losses_path", default="", type=str)
     parser.add_argument("--multi-distillation", action="store_true", help="run multi-distillation")
-
+    parser.add_argument("opts", help="Modify config options at the end of the command. For Yacs configs, use space-separated PATH.KEY VALUE pairs. For python-based LazyConfig, use path.key=value.", default=None, nargs=argparse.REMAINDER)
     return parser
 
 
@@ -138,11 +110,9 @@ def build_schedulers(cfg):
     momentum_schedule = CosineScheduler(**momentum)
     teacher_temp_schedule = CosineScheduler(**teacher_temp)
     last_layer_lr_schedule = CosineScheduler(**lr)
-
-    last_layer_lr_schedule.schedule[: cfg.optim["freeze_last_layer_epochs"] * OFFICIAL_EPOCH_LENGTH] = (
-        0  # mimicking the original schedules
-    )
+    last_layer_lr_schedule.schedule[: cfg.optim["freeze_last_layer_epochs"] * OFFICIAL_EPOCH_LENGTH] = 0  # mimicking the original schedules
     logger.info("Schedulers ready.")
+
     return (
         lr_schedule,
         wd_schedule,
@@ -163,15 +133,11 @@ def build_schedulers_v2(cfg):
     if cfg.optim.scaling_rule == "linear_wrt_256":
         lr_peak *= cfg.train.batch_size_per_gpu * distributed.get_world_size() / 256.0
         lr_end *= cfg.train.batch_size_per_gpu * distributed.get_world_size() / 256.0
-        logger.info(
-            f"Scaling rule {cfg.optim.scaling_rule}, LR peak {cfg.schedules.lr.peak} -> {lr_peak}, LR end {cfg.schedules.lr.end} -> {lr_end}"
-        )
+        logger.info(f"Scaling rule {cfg.optim.scaling_rule}, LR peak {cfg.schedules.lr.peak} -> {lr_peak}, LR end {cfg.schedules.lr.end} -> {lr_end}")
     elif cfg.optim.scaling_rule == "sqrt_wrt_1024":
         lr_peak *= 4 * math.sqrt(cfg.train.batch_size_per_gpu * distributed.get_world_size() / 1024.0)
         lr_end *= 4 * math.sqrt(cfg.train.batch_size_per_gpu * distributed.get_world_size() / 1024.0)
-        logger.info(
-            f"Scaling rule {cfg.optim.scaling_rule}, LR peak {cfg.schedules.lr.peak} -> {lr_peak}, LR end {cfg.schedules.lr.end} -> {lr_end}"
-        )
+        logger.info(f"Scaling rule {cfg.optim.scaling_rule}, LR peak {cfg.schedules.lr.peak} -> {lr_peak}, LR end {cfg.schedules.lr.end} -> {lr_end}")
     else:
         logger.info(f"No scaling rule for {cfg.optim.scaling_rule=}")
 
@@ -181,9 +147,7 @@ def build_schedulers_v2(cfg):
         end=lr_end,
         warmup_iterations=iter_per_epoch * cfg.schedules.lr.warmup_epochs,
         total_iterations=total_iterations,
-        cosine_iterations=(
-            iter_per_epoch * cfg.schedules.lr.cosine_epochs if "cosine_epochs" in cfg.schedules.lr else None
-        ),
+        cosine_iterations=iter_per_epoch * cfg.schedules.lr.cosine_epochs if "cosine_epochs" in cfg.schedules.lr else None
     )
     last_layer_lr = lr.copy()
     last_layer_lr[: iter_per_epoch * cfg.schedules.lr.freeze_last_layer_epochs] = 0
@@ -193,11 +157,7 @@ def build_schedulers_v2(cfg):
         end=cfg.schedules.weight_decay.end,
         warmup_iterations=iter_per_epoch * cfg.schedules.weight_decay.warmup_epochs,
         total_iterations=total_iterations,
-        cosine_iterations=(
-            iter_per_epoch * cfg.schedules.weight_decay.cosine_epochs
-            if "cosine_epochs" in cfg.schedules.weight_decay
-            else None
-        ),
+        cosine_iterations=iter_per_epoch * cfg.schedules.weight_decay.cosine_epochs if "cosine_epochs" in cfg.schedules.weight_decay else None
     )
     momentum = linear_warmup_cosine_decay(
         start=cfg.schedules.momentum.start,
@@ -205,9 +165,7 @@ def build_schedulers_v2(cfg):
         end=cfg.schedules.momentum.end,
         warmup_iterations=iter_per_epoch * cfg.schedules.momentum.warmup_epochs,
         total_iterations=total_iterations,
-        cosine_iterations=(
-            iter_per_epoch * cfg.schedules.momentum.cosine_epochs if "cosine_epochs" in cfg.schedules.momentum else None
-        ),
+        cosine_iterations=iter_per_epoch * cfg.schedules.momentum.cosine_epochs if "cosine_epochs" in cfg.schedules.momentum else None
     )
     teacher_temp = linear_warmup_cosine_decay(
         start=cfg.schedules.teacher_temp.start,
@@ -215,11 +173,7 @@ def build_schedulers_v2(cfg):
         end=cfg.schedules.teacher_temp.end,
         warmup_iterations=iter_per_epoch * cfg.schedules.teacher_temp.warmup_epochs,
         total_iterations=total_iterations,
-        cosine_iterations=(
-            iter_per_epoch * cfg.schedules.teacher_temp.cosine_epochs
-            if "cosine_epochs" in cfg.schedules.teacher_temp
-            else None
-        ),
+        cosine_iterations=iter_per_epoch * cfg.schedules.teacher_temp.cosine_epochs if "cosine_epochs" in cfg.schedules.teacher_temp else None
     )
     return lr, weight_decay, momentum, teacher_temp, last_layer_lr
 
@@ -247,9 +201,7 @@ def do_test(cfg, model, iteration, process_group, do_low_freq=False):
             ckpt_path.mkdir(parents=True, exist_ok=True)
         torch.distributed.barrier()
         teacher_backbone = model.model_ema
-        save_checkpoint(
-            ckpt_dir=ckpt_path, iteration=iteration, model=teacher_backbone, overwrite=True, process_group=process_group
-        )
+        save_checkpoint(ckpt_dir=ckpt_path, iteration=iteration, model=teacher_backbone, overwrite=True, process_group=process_group)
         if not distributed.is_subgroup_main_process():
             return
     else:
@@ -265,26 +217,17 @@ def do_test(cfg, model, iteration, process_group, do_low_freq=False):
         logger.info("Saved eval checkpoint: %s", ckpt_path)
 
 
-def build_data_loader_from_cfg(
-    cfg,
-    model,
-    start_iter,
-):
+def build_data_loader_from_cfg(cfg, model, start_iter):
     # Collate function
     img_size = cfg.crops.global_crops_size
     patch_size = cfg.student.patch_size
     n_tokens = (img_size // patch_size) ** 2
-    mask_generator = MaskingGenerator(
-        input_size=(img_size // patch_size, img_size // patch_size),
-        max_num_patches=0.5 * img_size // patch_size * img_size // patch_size,
-    )
+    mask_generator = MaskingGenerator(input_size=(img_size // patch_size, img_size // patch_size), max_num_patches=0.5 * img_size // patch_size * img_size // patch_size)
 
     if cfg.multidistillation.enabled:
         assert cfg.multidistillation.global_batch_size % distributed.get_subgroup_size() == 0
         local_batch_size = cfg.multidistillation.global_batch_size // distributed.get_subgroup_size()
-        dataloader_batch_size_per_gpu = (
-            cfg.multidistillation.global_batch_size + (distributed.get_world_size() - 1)
-        ) // distributed.get_world_size()
+        dataloader_batch_size_per_gpu = (cfg.multidistillation.global_batch_size + (distributed.get_world_size() - 1)) // distributed.get_world_size()
     else:
         local_batch_size = None  # will default to the standard local batch size matching the data batch size
         dataloader_batch_size_per_gpu = cfg.train.batch_size_per_gpu
@@ -431,6 +374,7 @@ def do_train(cfg, model, resume=False):
     logger.info("Starting training from iteration %d", start_iter)
     metrics_file = os.path.join(cfg.train.output_dir, "training_metrics.json")
     metric_logger = MetricLogger(delimiter="  ", output_file=metrics_file)
+
     # Manual garbage collection
     gc.disable()
     gc.collect()
@@ -439,6 +383,7 @@ def do_train(cfg, model, resume=False):
     student = model.student
     iteration = start_iter
     num_gram_updates = 0
+    
     if (
         cfg.gram.use_loss
         and model.has_gram_teacher
@@ -450,6 +395,7 @@ def do_train(cfg, model, resume=False):
         # iteration `start_iter - 1`, except if we are starting training from scratch and `start_iter == 0`.
         num_gram_updates = math.ceil((start_iter + 1 - cfg.gram.it_first_update) / cfg.gram.update_frequency)
         logger.info(f"Gram was updated {num_gram_updates} times before iteration {start_iter}")
+
     consecutive_nan_count = 0
     for data in metric_logger.log_every(
         data_loader,
@@ -487,10 +433,7 @@ def do_train(cfg, model, resume=False):
         # Gradient clipping
         if cfg.optim.clip_grad:
             for k, v in student.items():
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    v.parameters(),
-                    max_norm=cfg.optim.clip_grad,
-                )
+                grad_norm = torch.nn.utils.clip_grad_norm_(v.parameters(), max_norm=cfg.optim.clip_grad)
                 metrics_dict[f"{k}_grad_norm"] = (
                     grad_norm.full_tensor().item()
                     if isinstance(grad_norm, torch.distributed.tensor.DTensor)
@@ -505,9 +448,7 @@ def do_train(cfg, model, resume=False):
             group=distributed.get_process_subgroup(),
         )
         total_loss = total_loss_all_ranks.mean()
-        metrics_values = torch.stack(
-            [torch.as_tensor(v, dtype=torch.float32, device=total_loss.device).detach() for v in metrics_dict.values()]
-        )
+        metrics_values = torch.stack([torch.as_tensor(v, dtype=torch.float32, device=total_loss.device).detach() for v in metrics_dict.values()])
         torch.distributed.all_reduce(
             metrics_values,
             op=torch.distributed.ReduceOp.AVG,
@@ -551,10 +492,7 @@ def do_train(cfg, model, resume=False):
         metric_logger.update(total_loss=total_loss, **metrics_dict)
 
         # Submit evaluation jobs
-        if (
-            cfg.evaluation.eval_period_iterations > 0 and (iteration + 1) % cfg.evaluation.eval_period_iterations == 0
-            # and iteration != max_iter - 1
-        ):
+        if cfg.evaluation.eval_period_iterations > 0 and (iteration + 1) % cfg.evaluation.eval_period_iterations == 0:
             do_test(cfg, model, f"training_{iteration}", process_group=process_subgroup)
             torch.cuda.synchronize()
 
@@ -586,6 +524,7 @@ def main(argv=None):
     else:
         args = get_args_parser().parse_args(argv[1:])
         args.output_dir = sys.argv[1]
+
     if args.multi_distillation:
         print("performing multidistillation run")
         cfg = setup_multidistillation(args)
@@ -596,30 +535,21 @@ def main(argv=None):
         setup_job(output_dir=args.output_dir, seed=args.seed)
         cfg = setup_config(args, strict_cfg=False)
         logger.info(cfg)
-        setup_logging(
-            output=os.path.join(os.path.abspath(args.output_dir), "nan_logs"),
-            name="nan_logger",
-        )
-    meta_arch = {
-        "SSLMetaArch": SSLMetaArch,
-        "MultiDistillationMetaArch": MultiDistillationMetaArch,
-    }.get(cfg.MODEL.META_ARCHITECTURE, None)
+        setup_logging(output=os.path.join(os.path.abspath(args.output_dir), "nan_logs"), name="nan_logger")
+
+    meta_arch = {"SSLMetaArch": SSLMetaArch, "MultiDistillationMetaArch": MultiDistillationMetaArch}.get(cfg.MODEL.META_ARCHITECTURE, None)
+
     if meta_arch is None:
         raise ValueError(f"Unknown MODEL.META_ARCHITECTURE {cfg.MODEL.META_ARCHITECTURE}")
     logger.info(f"Making meta arch {meta_arch.__name__}")
     with torch.device("meta"):
         model = meta_arch(cfg)
+
     model.prepare_for_distributed_training()
-    # Fill all values with `nans` so that we identify
-    # non-initialized values
-    model._apply(
-        lambda t: torch.full_like(
-            t,
-            fill_value=math.nan if t.dtype.is_floating_point else (2 ** (t.dtype.itemsize * 8 - 1)),
-            device="cuda",
-        ),
-        recurse=True,
-    )
+
+    # Fill all values with `nans` so that we identify non-initialized values
+    model._apply(lambda t: torch.full_like(t, fill_value=math.nan if t.dtype.is_floating_point else (2 ** (t.dtype.itemsize * 8 - 1)), device="cuda"), recurse=True)
+    
     logger.info(f"Model after distributed:\n{model}")
     if args.eval_only:
         model.init_weights()

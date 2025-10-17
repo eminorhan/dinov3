@@ -27,7 +27,6 @@ class DatasetWithEnumeratedTargets(Dataset):
     with drop_last=False pads the last batch to be a multiple of the world size.
     https://github.com/pytorch/pytorch/blob/main/torch/utils/data/distributed.py#L91
     """
-
     def __init__(self, dataset: Dataset, pad_dataset: bool = False, num_replicas: Optional[int] = None):
         self._dataset = dataset
         self._size = len(self._dataset)

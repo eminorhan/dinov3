@@ -22,7 +22,7 @@ optimizer:
   weight_decay: 1e-3
   gradient_clip: 'inf'
 datasets:
-  root: ""  # Path to the ADE20K dataset
+  root: "/lustre/gale/stf218/scratch/emin/ade20k-dataset"  # Path to the ADE20K dataset
   train: "ADE20K:split=TRAIN"
   val: "ADE20K:split=VAL"
 train:

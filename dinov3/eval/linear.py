@@ -70,9 +70,7 @@ class SchedulerType(Enum):
     def get_scheduler(self, optimizer, optim_param_groups, epoch_length, epochs, max_iter):
         if self == SchedulerType.ONE_CYCLE:
             lr_list = [optim_param_groups[i]["lr"] for i in range(len(optim_param_groups))]
-            scheduler = torch.optim.lr_scheduler.OneCycleLR(
-                optimizer, max_lr=lr_list, steps_per_epoch=epoch_length, epochs=epochs
-            )
+            scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=lr_list, steps_per_epoch=epoch_length, epochs=epochs)
         else:
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, max_iter, eta_min=0)
         return scheduler
@@ -96,9 +94,7 @@ class TrainConfig:
     scheduler_type: SchedulerType = SchedulerType.COSINE_ANNEALING
     epochs: int = 10  # number of training epochs
     epoch_length: int = 1250  # length of an epoch in number of iterations
-    save_checkpoint_iterations: int | None = (
-        None  # number of iterations between two checkpoint saves (default: one epoch)
-    )
+    save_checkpoint_iterations: int | None = None # number of iterations between two checkpoint saves (default: one epoch)
     eval_period_iterations: int | None = None  # number of iterations between two evaluations (default: one epoch)
     checkpoint_retention_policy: CheckpointRetentionPolicy = CheckpointRetentionPolicy.NONE  # keep checkpoints or not
     resume: bool = True  # whether to resume from existing checkpoints
@@ -217,13 +213,9 @@ def setup_linear_classifiers(sample_output, n_last_blocks_list, learning_rates, 
             for _lr in learning_rates:
                 lr = scale_lr(_lr, batch_size)
                 out_dim = create_linear_input(sample_output, use_n_blocks=n, use_avgpool=avgpool).shape[1]
-                linear_classifier = LinearClassifier(
-                    out_dim, use_n_blocks=n, use_avgpool=avgpool, num_classes=num_classes
-                )
+                linear_classifier = LinearClassifier(out_dim, use_n_blocks=n, use_avgpool=avgpool, num_classes=num_classes)
                 linear_classifier = linear_classifier.cuda()
-                linear_classifiers_dict[
-                    f"classifier_{n}_blocks_avgpool_{avgpool}_lr_{lr:.5f}".replace(".", "_")
-                ] = linear_classifier
+                linear_classifiers_dict[f"classifier_{n}_blocks_avgpool_{avgpool}_lr_{lr:.5f}".replace(".", "_")] = linear_classifier
                 optim_param_groups.append({"params": linear_classifier.parameters(), "lr": lr})
 
     linear_classifiers = AllClassifiers(linear_classifiers_dict)
@@ -235,9 +227,7 @@ def setup_linear_classifiers(sample_output, n_last_blocks_list, learning_rates, 
 
 def make_eval_transform(config: TransformConfig):
     if config.resize_size / config.crop_size != 256 / 224:
-        logger.warning(
-            f"Default resize / crop ratio is 256 / 224, here we have {config.resize_size} / {config.crop_size}"
-        )
+        logger.warning(f"Default resize / crop ratio is 256 / 224, here we have {config.resize_size} / {config.crop_size}")
     transform = make_classification_eval_transform(resize_size=config.resize_size, crop_size=config.crop_size)
     return transform
 

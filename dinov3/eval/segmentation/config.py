@@ -25,10 +25,7 @@ class ModelDtype(Enum):
 
     @property
     def autocast_dtype(self):
-        return {
-            ModelDtype.BFLOAT16: torch.bfloat16,
-            ModelDtype.FLOAT32: torch.float32,
-        }[self]
+        return {ModelDtype.BFLOAT16: torch.bfloat16, ModelDtype.FLOAT32: torch.float32}[self]
 
 
 @dataclass

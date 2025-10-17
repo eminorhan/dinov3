@@ -103,9 +103,7 @@ class MSDeformAttnTransformerEncoderOnly(nn.Module):
         self.d_model = d_model
         self.nhead = nhead
 
-        encoder_layer = MSDeformAttnTransformerEncoderLayer(
-            d_model, dim_feedforward, dropout, activation, num_feature_levels, nhead, enc_n_points
-        )
+        encoder_layer = MSDeformAttnTransformerEncoderLayer(d_model, dim_feedforward, dropout, activation, num_feature_levels, nhead, enc_n_points)
         self.encoder = MSDeformAttnTransformerEncoder(encoder_layer, num_encoder_layers)
 
         self.level_encoding = nn.Parameter(torch.Tensor(num_feature_levels, d_model))

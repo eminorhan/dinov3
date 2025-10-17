@@ -1,0 +1,150 @@
+I20251013 18:13:06 372144 dinov3 torch_distributed_wrapper.py:255] PyTorch distributed environment: TorchElastic job (101) using arch04.afw.ccs.ornl.gov:35811 (rank=5, world size=8)
+W20251013 18:13:11 372144 py.warnings warnings.py:109] /lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+
+I20251013 18:13:14 372144 dinov3 config.py:206] git:
+  sha: eab4e9599b411a0bea6cd3629ddce13474f6ff77, status: has uncommited changes, branch: main
+
+I20251013 18:13:14 372144 dinov3 config.py:210] conda env name: None
+I20251013 18:13:14 372144 dinov3 config.py:211] conda env path: None
+I20251013 18:13:14 372144 dinov3 config.py:212] python path: ['/lustre/gale/stf218/scratch/emin/dinov3/dinov3/eval/segmentation', '/opt/cray/pe/python/3.11.7/lib/python311.zip', '/opt/cray/pe/python/3.11.7/lib/python3.11', '/opt/cray/pe/python/3.11.7/lib/python3.11/lib-dynload', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages', '/lustre/gale/stf218/scratch/emin/cellmap-segmentation-challenge/src', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/flash_attn_3-3.0.0b1-py3.11-linux-aarch64.egg', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/einops-0.8.1-py3.11.egg', '/lustre/gale/stf218/scratch/emin/dinov3', '/tmp/tmpx32ztgmg']
+I20251013 18:15:36 372259 dinov3 torch_distributed_wrapper.py:255] PyTorch distributed environment: TorchElastic job (101) using arch04.afw.ccs.ornl.gov:35811 (rank=5, world size=8)
+W20251013 18:15:41 372259 py.warnings warnings.py:109] /lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+
+I20251013 18:19:31 372949 dinov3 torch_distributed_wrapper.py:255] PyTorch distributed environment: TorchElastic job (101) using arch04.afw.ccs.ornl.gov:45783 (rank=5, world size=8)
+W20251013 18:19:37 372949 py.warnings warnings.py:109] /lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+
+I20251013 18:19:39 372949 dinov3 config.py:206] git:
+  sha: eab4e9599b411a0bea6cd3629ddce13474f6ff77, status: has uncommited changes, branch: main
+
+I20251013 18:19:39 372949 dinov3 config.py:210] conda env name: None
+I20251013 18:19:39 372949 dinov3 config.py:211] conda env path: None
+I20251013 18:19:39 372949 dinov3 config.py:212] python path: ['/lustre/gale/stf218/scratch/emin/dinov3/dinov3/eval/segmentation', '/opt/cray/pe/python/3.11.7/lib/python311.zip', '/opt/cray/pe/python/3.11.7/lib/python3.11', '/opt/cray/pe/python/3.11.7/lib/python3.11/lib-dynload', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages', '/lustre/gale/stf218/scratch/emin/cellmap-segmentation-challenge/src', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/flash_attn_3-3.0.0b1-py3.11-linux-aarch64.egg', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/einops-0.8.1-py3.11.egg', '/lustre/gale/stf218/scratch/emin/dinov3', '/tmp/tmpgz4475kh']
+I20251013 18:19:50 373039 dinov3 torch_distributed_wrapper.py:255] PyTorch distributed environment: TorchElastic job (101) using arch04.afw.ccs.ornl.gov:45783 (rank=5, world size=8)
+W20251013 18:19:55 373039 py.warnings warnings.py:109] /lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+
+I20251013 18:21:52 373900 dinov3 torch_distributed_wrapper.py:255] PyTorch distributed environment: TorchElastic job (101) using arch04.afw.ccs.ornl.gov:40831 (rank=5, world size=8)
+W20251013 18:21:58 373900 py.warnings warnings.py:109] /lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+
+I20251013 18:22:01 373900 dinov3 config.py:206] git:
+  sha: eab4e9599b411a0bea6cd3629ddce13474f6ff77, status: has uncommited changes, branch: main
+
+I20251013 18:22:01 373900 dinov3 config.py:210] conda env name: None
+I20251013 18:22:01 373900 dinov3 config.py:211] conda env path: None
+I20251013 18:22:01 373900 dinov3 config.py:212] python path: ['/lustre/gale/stf218/scratch/emin/dinov3/dinov3/eval/segmentation', '/opt/cray/pe/python/3.11.7/lib/python311.zip', '/opt/cray/pe/python/3.11.7/lib/python3.11', '/opt/cray/pe/python/3.11.7/lib/python3.11/lib-dynload', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages', '/lustre/gale/stf218/scratch/emin/cellmap-segmentation-challenge/src', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/flash_attn_3-3.0.0b1-py3.11-linux-aarch64.egg', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/einops-0.8.1-py3.11.egg', '/lustre/gale/stf218/scratch/emin/dinov3', '/tmp/tmpg8fe3or6']
+I20251013 18:22:11 373995 dinov3 torch_distributed_wrapper.py:255] PyTorch distributed environment: TorchElastic job (101) using arch04.afw.ccs.ornl.gov:40831 (rank=5, world size=8)
+W20251013 18:22:16 373995 py.warnings warnings.py:109] /lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+
+I20251013 18:22:19 373995 dinov3 config.py:206] git:
+  sha: eab4e9599b411a0bea6cd3629ddce13474f6ff77, status: has uncommited changes, branch: main
+
+I20251013 18:22:19 373995 dinov3 config.py:210] conda env name: None
+I20251013 18:22:19 373995 dinov3 config.py:211] conda env path: None
+I20251013 18:22:19 373995 dinov3 config.py:212] python path: ['/lustre/gale/stf218/scratch/emin/dinov3/dinov3/eval/segmentation', '/opt/cray/pe/python/3.11.7/lib/python311.zip', '/opt/cray/pe/python/3.11.7/lib/python3.11', '/opt/cray/pe/python/3.11.7/lib/python3.11/lib-dynload', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages', '/lustre/gale/stf218/scratch/emin/cellmap-segmentation-challenge/src', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/flash_attn_3-3.0.0b1-py3.11-linux-aarch64.egg', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/einops-0.8.1-py3.11.egg', '/lustre/gale/stf218/scratch/emin/dinov3', '/tmp/tmpvlp_2vgt']
+I20251013 18:23:54 374430 dinov3 torch_distributed_wrapper.py:255] PyTorch distributed environment: TorchElastic job (101) using arch04.afw.ccs.ornl.gov:42583 (rank=5, world size=8)
+W20251013 18:24:00 374430 py.warnings warnings.py:109] /lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+
+I20251013 18:24:03 374430 dinov3 config.py:206] git:
+  sha: eab4e9599b411a0bea6cd3629ddce13474f6ff77, status: has uncommited changes, branch: main
+
+I20251013 18:24:03 374430 dinov3 config.py:210] conda env name: None
+I20251013 18:24:03 374430 dinov3 config.py:211] conda env path: None
+I20251013 18:24:03 374430 dinov3 config.py:212] python path: ['/lustre/gale/stf218/scratch/emin/dinov3/dinov3/eval/segmentation', '/opt/cray/pe/python/3.11.7/lib/python311.zip', '/opt/cray/pe/python/3.11.7/lib/python3.11', '/opt/cray/pe/python/3.11.7/lib/python3.11/lib-dynload', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages', '/lustre/gale/stf218/scratch/emin/cellmap-segmentation-challenge/src', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/flash_attn_3-3.0.0b1-py3.11-linux-aarch64.egg', '/lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/einops-0.8.1-py3.11.egg', '/lustre/gale/stf218/scratch/emin/dinov3', '/tmp/tmp2fbkswt8']
+I20251013 18:24:03 374430 dinov3 vision_transformer.py:116] using base=100 for rope new
+I20251013 18:24:03 374430 dinov3 vision_transformer.py:117] using min_period=None for rope new
+I20251013 18:24:03 374430 dinov3 vision_transformer.py:118] using max_period=None for rope new
+I20251013 18:24:03 374430 dinov3 vision_transformer.py:119] using normalize_coords=separate for rope new
+I20251013 18:24:03 374430 dinov3 vision_transformer.py:120] using shift_coords=None for rope new
+I20251013 18:24:03 374430 dinov3 vision_transformer.py:121] using rescale_coords=2 for rope new
+I20251013 18:24:03 374430 dinov3 vision_transformer.py:122] using jitter_coords=None for rope new
+I20251013 18:24:03 374430 dinov3 vision_transformer.py:123] using dtype=fp32 for rope new
+I20251013 18:24:03 374430 dinov3 vision_transformer.py:137] using swiglu64 layer as FFN
+I20251013 18:27:39 374430 dinov3 run.py:53] Segmentation Config:
+model:
+  config_file: null
+  pretrained_weights: null
+  dino_hub: dinov3_vit7b16
+bs: 2
+n_gpus: 8
+num_workers: 6
+model_dtype: FLOAT32
+seed: 100
+datasets:
+  root: /lustre/gale/stf218/scratch/emin/ade20k-dataset
+  train: ADE20K:split=TRAIN
+  val: ADE20K:split=VAL
+metric_to_save: mIoU
+decoder_head:
+  type: linear
+  backbone_out_layers: LAST
+  use_batchnorm: true
+  use_cls_token: false
+  use_backbone_norm: true
+  num_classes: 150
+  hidden_dim: 2048
+scheduler:
+  type: WarmupOneCycleLR
+  total_iter: 40000
+  constructor_kwargs:
+    warmup_iters: 1500
+    warmup_ratio: 1.0e-06
+    final_div_factor: .inf
+    pct_start: 0
+    anneal_strategy: cos
+    use_beta1: false
+    update_momentum: false
+optimizer:
+  lr: 0.001
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.001
+  gradient_clip: .inf
+transforms:
+  train:
+    img_size: 512
+    random_img_size_ratio_range:
+    - 0.5
+    - 2.0
+    crop_size:
+    - 512
+    - 512
+    flip_prob: 0.5
+  eval:
+    img_size: 512
+    tta_ratios:
+    - 1.0
+  mean:
+  - 123.675
+  - 116.28
+  - 103.53
+  std:
+  - 58.395
+  - 57.120000000000005
+  - 57.375
+train:
+  diceloss_weight: 0.0
+  celoss_weight: 1.0
+eval:
+  compute_metric_per_image: false
+  reduce_zero_label: true
+  mode: slide
+  crop_size: 512
+  stride: 341
+  eval_interval: 5000
+  use_tta: false
+output_dir: /lustre/gale/stf218/scratch/emin/dinov3/outputs
+load_from: null
+
+I20251013 18:27:39 374430 dinov3 train.py:149] Initializing the segmentation model
+I20251013 18:27:41 374430 dinov3 train.py:161] Number of trainable parameters: 622742
+I20251013 18:27:41 374430 dinov3 loaders.py:96] using dataset: "ADE20K:split=TRAIN:root=/lustre/gale/stf218/scratch/emin/ade20k-dataset"
+I20251013 18:27:56 374547 dinov3 torch_distributed_wrapper.py:255] PyTorch distributed environment: TorchElastic job (101) using arch04.afw.ccs.ornl.gov:42583 (rank=5, world size=8)
+W20251013 18:28:02 374547 py.warnings warnings.py:109] /lustre/gale/stf218/scratch/emin/ncclvenv/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4631: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+

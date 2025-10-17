@@ -46,9 +46,7 @@ def ac_compile_parallelize(
     2/ Compile blocks
     3/ FSDP blocks + global model
     """
-    assert (
-        isinstance(trained_model, nn.ModuleDict) and "backbone" in trained_model.keys()
-    ), f"{trained_model} does not contain a backbone?"
+    assert isinstance(trained_model, nn.ModuleDict) and "backbone" in trained_model.keys(), f"{trained_model} does not contain a backbone?"
     logger.info("DISTRIBUTED FSDP -- preparing model for distributed training")
     if utils.has_batchnorms(trained_model):
         raise NotImplementedError
@@ -71,11 +69,7 @@ def ac_compile_parallelize(
                 torch.ops.aten._scaled_dot_product_flash_attention.default,
                 torch.ops._c10d_functional.reduce_scatter_tensor.default,
             ]
-            _checkpointing_wrapper = partial(
-                checkpoint_wrapper,
-                context_fn=partial(create_selective_checkpoint_contexts, _save_list),
-                preserve_rng_state=True,
-            )
+            _checkpointing_wrapper = partial(checkpoint_wrapper, context_fn=partial(create_selective_checkpoint_contexts, _save_list), preserve_rng_state=True)
             logger.info("using selective checkpointing on backbone with selective policy")
         for i, b in enumerate(backbone.blocks):
             backbone.blocks[i] = _checkpointing_wrapper(b)
@@ -102,28 +96,13 @@ def ac_compile_parallelize(
     map_modules_and_blocks(all_models, wrap_compile_block)
 
     # 3/ Wrap submodules with FSDP
-    world_mesh = init_device_mesh(
-        "cuda",
-        mesh_shape=(dist.get_world_size(),),
-        mesh_dim_names=("dp",),
-    )
-    DTYPE_MAP = {
-        "fp16": torch.float16,
-        "bf16": torch.bfloat16,
-        "fp32": torch.float32,
-    }
-    mp_policy = MixedPrecisionPolicy(
-        param_dtype=DTYPE_MAP[cfg.compute_precision.param_dtype],
-        reduce_dtype=DTYPE_MAP[cfg.compute_precision.reduce_dtype],
-    )
+    world_mesh = init_device_mesh("cuda", mesh_shape=(dist.get_world_size(),), mesh_dim_names=("dp",))
+    DTYPE_MAP = {"fp16": torch.float16, "bf16": torch.bfloat16, "fp32": torch.float32}
+    mp_policy = MixedPrecisionPolicy(param_dtype=DTYPE_MAP[cfg.compute_precision.param_dtype], reduce_dtype=DTYPE_MAP[cfg.compute_precision.reduce_dtype])
 
     for m, pg in zip(all_models, all_pgs):
         if pg is None:
-            world_mesh = init_device_mesh(
-                "cuda",
-                mesh_shape=(dist.get_world_size(),),
-                mesh_dim_names=("dp",),
-            )
+            world_mesh = init_device_mesh("cuda", mesh_shape=(dist.get_world_size(),), mesh_dim_names=("dp",))
         else:
             world_mesh = DeviceMesh.from_group(pg, "cuda")
         fsdp_config = {"mesh": world_mesh, "mp_policy": mp_policy}
@@ -150,11 +129,11 @@ def ac_compile_parallelize(
             fully_shard(m.backbone, **fsdp_config, reshard_after_forward=True).set_reduce_scatter_divide_factor(1)
             register_fsdp_forward_method(m.backbone, "get_intermediate_layers")
 
-    # 4/ Move to `cuda` device
+    # Move to `cuda` device
     for model in all_models:
         model.to_empty(device="cuda")
 
-    # 5/ FSDP2: Reshard immediately after forward for inference-only models
+    # FSDP2: Reshard immediately after forward for inference-only models
     for model in inference_only_models:
         for k in model.keys():
             fsdp_state: FSDPState = model[k]._get_fsdp_state()

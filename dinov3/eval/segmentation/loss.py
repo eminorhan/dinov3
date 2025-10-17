@@ -107,9 +107,7 @@ def dice_loss(pred, target, valid_mask, smooth=1, exponent=2, class_weight=None,
     num_classes = pred.shape[1]
     for i in range(num_classes):
         if i != ignore_index:
-            dice_loss = binary_dice_loss(
-                pred[:, i], target[..., i], valid_mask=valid_mask, smooth=smooth, exponent=exponent
-            )
+            dice_loss = binary_dice_loss(pred[:, i], target[..., i], valid_mask=valid_mask, smooth=smooth, exponent=exponent)
             if class_weight is not None:
                 dice_loss *= class_weight[i]
             total_loss += dice_loss
@@ -151,7 +149,6 @@ class DiceLoss(nn.Module):
             item to be included into the backward graph, `loss_` must be the
             prefix of the name. Defaults to 'loss_dice'.
     """
-
     def __init__(
         self,
         smooth=1,
@@ -206,9 +203,7 @@ def multilabel_dice_loss(pred, target, valid_mask, smooth=1, exponent=2, class_w
     num_classes = pred.shape[1]
     for i in range(num_classes):
         if i != ignore_index:
-            dice_loss = binary_dice_loss(
-                pred[:, i], target[:, i], valid_mask=valid_mask, smooth=smooth, exponent=exponent
-            )
+            dice_loss = binary_dice_loss(pred[:, i], target[:, i], valid_mask=valid_mask, smooth=smooth, exponent=exponent)
             if class_weight is not None:
                 dice_loss *= class_weight[i]
             total_loss += dice_loss
@@ -280,7 +275,6 @@ class MultiSegmentationLoss(nn.Module):
     """
     Combine different losses used in segmentation.
     """
-
     def __init__(self, diceloss_weight=0.0, celoss_weight=0.0):
         super(MultiSegmentationLoss, self).__init__()
 

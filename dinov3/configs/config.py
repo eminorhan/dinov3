@@ -110,8 +110,7 @@ def _enumerate_all_subgroup_ranks(all_subgroup_rank_spans: Sequence[Tuple[int, i
     """Expands a specification of process subgroups from spans to enumerated ranks.
 
     Args:
-       all_group_rank_spans: a sequence of rank spans (first rank, last rank),
-           one for each process group. Example: ((0, 1), (2, 3), (4, 7)).
+       all_group_rank_spans: a sequence of rank spans (first rank, last rank), one for each process group. Example: ((0, 1), (2, 3), (4, 7)).
     """
     for first, last in all_subgroup_rank_spans:
         assert first <= last
@@ -132,9 +131,7 @@ def setup_multidistillation(args: DinoV3SetupArgs):
     rank = distributed.get_rank()
 
     # build process subgroups
-    all_subgroup_rank_spans = tuple(
-        (student.ranks_range[0], student.ranks_range[1] - 1) for student in base_cfg.multidistillation.students
-    )
+    all_subgroup_rank_spans = tuple((student.ranks_range[0], student.ranks_range[1] - 1) for student in base_cfg.multidistillation.students)
     all_subgroup_ranks = _enumerate_all_subgroup_ranks(all_subgroup_rank_spans)
     distributed.new_subgroups(all_subgroup_ranks)
 
