@@ -17,6 +17,13 @@ def make_2tuple(x):
     assert isinstance(x, int)
     return (x, x)
 
+def make_3tuple(x: Union[int, Tuple[int, int, int]]) -> Tuple[int, int, int]:
+    if isinstance(x, tuple):
+        assert len(x) == 3, "Input tuple must have length 3"
+        return x
+    assert isinstance(x, int), "Input must be an integer or a tuple of 3 integers"
+    return (x, x, x)
+
 
 class PatchEmbed(nn.Module):
     """
@@ -84,6 +91,80 @@ class PatchEmbed(nn.Module):
 
     def reset_parameters(self):
         k = 1 / (self.in_chans * (self.patch_size[0] ** 2))
+        nn.init.uniform_(self.proj.weight, -math.sqrt(k), math.sqrt(k))
+        if self.proj.bias is not None:
+            nn.init.uniform_(self.proj.bias, -math.sqrt(k), math.sqrt(k))
+
+
+class PatchEmbed3d(nn.Module):
+    """
+    3D Volume to Patch Embedding: (B, C, D, H, W) -> (B, N, E)
+
+    Args:
+        img_size: Volume size (D, H, W).
+        patch_size: Patch token size (P_d, P_h, P_w).
+        in_chans: Number of input volume channels.
+        embed_dim: Number of linear projection output channels (embedding dim).
+        norm_layer: Normalization layer.
+    """
+
+    def __init__(
+        self,
+        img_size: Union[int, Tuple[int, int, int]] = (512, 512, 512),
+        patch_size: Union[int, Tuple[int, int, int]] = (16, 16, 16),
+        in_chans: int = 1, # EM data is often single-channel
+        embed_dim: int = 768,
+        norm_layer: Callable | None = None,
+    ) -> None:
+        super().__init__()
+
+        image_DHW = make_3tuple(img_size)
+        patch_DHW = make_3tuple(patch_size)
+        patch_grid_size = (
+            image_DHW[0] // patch_DHW[0],
+            image_DHW[1] // patch_DHW[1],
+            image_DHW[2] // patch_DHW[2],
+        )
+
+        self.img_size = image_DHW
+        self.patch_size = patch_DHW
+        self.patches_resolution = patch_grid_size
+        self.num_patches = patch_grid_size[0] * patch_grid_size[1] * patch_grid_size[2]
+
+        self.in_chans = in_chans
+        self.embed_dim = embed_dim
+
+        self.proj = nn.Conv3d(in_chans, embed_dim, kernel_size=patch_DHW, stride=patch_DHW)
+        self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Input x: (B, C, D, H, W)
+        Output: (B, N, E) where N is the number of patches and E is embed_dim.
+        """
+        _, _, D, H, W = x.shape
+        
+        # Check if input dimensions are multiples of patch dimensions
+        p_d, p_h, p_w = self.patch_size
+        assert D % p_d == 0, f"Input volume depth {D} is not a multiple of patch depth {p_d}"
+        assert H % p_h == 0, f"Input volume height {H} is not a multiple of patch height {p_h}"
+        assert W % p_w == 0, f"Input volume width {W} is not a multiple of patch width {p_w}"
+
+        # Project to patches and flatten
+        x = self.proj(x)  # B, E, D_grid, H_grid, W_grid
+        x = x.flatten(2).transpose(1, 2)  # B, (D_grid*H_grid*W_grid), E
+        x = self.norm(x)
+        return x
+
+    def flops(self) -> float:
+        Do, Ho, Wo = self.patches_resolution
+        flops = Do * Ho * Wo * self.embed_dim * self.in_chans * (self.patch_size[0] * self.patch_size[1] * self.patch_size[2])
+        if self.norm is not None:
+            flops += Do * Ho * Wo * self.embed_dim
+        return flops
+
+    def reset_parameters(self):
+        k = 1 / (self.in_chans * (self.patch_size[0] ** 3))
         nn.init.uniform_(self.proj.weight, -math.sqrt(k), math.sqrt(k))
         if self.proj.bias is not None:
             nn.init.uniform_(self.proj.bias, -math.sqrt(k), math.sqrt(k))

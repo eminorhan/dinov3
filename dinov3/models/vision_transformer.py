@@ -113,14 +113,6 @@ class DinoVisionTransformer(nn.Module):
         self.n_storage_tokens = n_storage_tokens
         if self.n_storage_tokens > 0:
             self.storage_tokens = nn.Parameter(torch.empty(1, n_storage_tokens, embed_dim, device=device))
-        logger.info(f"using base={pos_embed_rope_base} for rope new")
-        logger.info(f"using min_period={pos_embed_rope_min_period} for rope new")
-        logger.info(f"using max_period={pos_embed_rope_max_period} for rope new")
-        logger.info(f"using normalize_coords={pos_embed_rope_normalize_coords} for rope new")
-        logger.info(f"using shift_coords={pos_embed_rope_shift_coords} for rope new")
-        logger.info(f"using rescale_coords={pos_embed_rope_rescale_coords} for rope new")
-        logger.info(f"using jitter_coords={pos_embed_rope_jitter_coords} for rope new")
-        logger.info(f"using dtype={pos_embed_rope_dtype} for rope new")
         self.rope_embed = RopePositionEmbedding(
             embed_dim=embed_dim,
             num_heads=num_heads,
@@ -134,7 +126,6 @@ class DinoVisionTransformer(nn.Module):
             dtype=dtype_dict[pos_embed_rope_dtype],
             device=device,
         )
-        logger.info(f"using {ffn_layer} layer as FFN")
         ffn_layer_cls = ffn_layer_dict[ffn_layer]
         ffn_ratio_sequence = [ffn_ratio] * depth
         blocks_list = [
@@ -190,7 +181,7 @@ class DinoVisionTransformer(nn.Module):
     def prepare_tokens_with_masks(self, x: Tensor, masks=None) -> Tuple[Tensor, Tuple[int]]:
         x = self.patch_embed(x)
         B, H, W, _ = x.shape
-        x = x.flatten(1, 2)
+        x = x.flatten(1, 2)  # B H*W D
 
         if masks is not None:
             x = torch.where(masks.unsqueeze(-1), self.mask_token.to(x.dtype).unsqueeze(0), x)

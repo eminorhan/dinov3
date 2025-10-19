@@ -26,11 +26,12 @@ torch.hub.set_dir("/lustre/gale/stf218/scratch/emin/torch_hub")
 # segmentor = torch.hub.load(REPO_DIR, 'dinov3_vit7b16_ms', source="local", weights="dinov3_vit7b16_ade20k_m2f_head-bf307cb1.pth", backbone_weights="dinov3_vit7b16_pretrain_lvd1689m-a955f4ea.pth")
 # segmentor = torch.hub.load(REPO_DIR, 'dinov3_vit7b16_ms', source="local", pretrained=False) #weights=None, backbone_weights=None)
 backbone = torch.hub.load(REPO_DIR, 'dinov3_vit7b16', source="local", pretrained=False) #weights=None, backbone_weights=None)
+print(f"Backbone architecture: {backbone}")
+print(f"=========================================================================")
 segmentor = build_segmentation_decoder(backbone)
-print(f"Loaded model...")
-print(f"Model architecture: {segmentor}")
+print(f"Full model architecture: {segmentor}")
 
-img_size = 896
+img_size = 1024
 img  = get_img()
 transform = make_transform(img_size)
 with torch.inference_mode():
@@ -39,6 +40,7 @@ with torch.inference_mode():
         print(f"Batch_img shape: {batch_img.shape}")
         pred_vit7b = segmentor(batch_img)  # raw predictions 
         print(f"pred_vit7b shape: {pred_vit7b.shape}")
+        print(f"pred_vit7b: {pred_vit7b}")
         # print(f"Raw prediction masks shape: {pred_vit7b['pred_masks'].shape}")
         # actual segmentation map
         segmentation_map_vit7b = make_inference(
