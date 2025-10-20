@@ -312,7 +312,7 @@ class DinoVisionTransformer3D(nn.Module):
         *,
         img_size: int = 224,
         patch_size: int = 16,
-        in_chans: int = 3,
+        in_chans: int = 1,  # NOTE: this is different from the 2d case above
         pos_embed_rope_base: float = 100.0,
         pos_embed_rope_min_period: float | None = None,
         pos_embed_rope_max_period: float | None = None,

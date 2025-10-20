@@ -138,7 +138,7 @@ class RopePositionEmbedding3D(nn.Module):
         Initializes the 3D RoPE module.
 
         Args:
-            embed_dim (int): The embedding dimension. Must be divisible by (6 * num_heads).
+            embed_dim (int): The embedding dimension.
             num_heads (int): The number of attention heads.
             base (float, optional): The base for the geometric progression of periods. Defaults to 100.0.
             min_period (float, optional): The minimum period for the sinusoidal embeddings.
@@ -154,9 +154,6 @@ class RopePositionEmbedding3D(nn.Module):
             device (torch.device, optional): The device to place tensors on.
         """
         super().__init__()
-        # For 3D, we split the head dimension into 3 parts (for D, H, W), and each part needs to be even.
-        # So, the head dimension must be divisible by 6.
-        assert embed_dim % (6 * num_heads) == 0, "embed_dim must be divisible by (6 * num_heads)"
         both_periods = min_period is not None and max_period is not None
         if (base is None and not both_periods) or (base is not None and both_periods):
             raise ValueError("Either `base` or `min_period`+`max_period` must be provided.")
@@ -170,10 +167,15 @@ class RopePositionEmbedding3D(nn.Module):
         self.shift_coords = shift_coords
         self.jitter_coords = jitter_coords
         self.rescale_coords = rescale_coords
-
         self.dtype = dtype
-        # The number of periods is D_head // 6, as we have 3 dimensions and each requires a sin/cos pair.
-        self.register_buffer("periods", torch.empty(D_head // 6, device=device, dtype=dtype), persistent=True)
+
+        # For 3D axial RoPE, the dimension must be split into 3 for D, H, W.
+        # If D_head isn't divisible by 6, we use the largest multiple of 6 for RoPE
+        # and leave the rest of the channels untouched (identity-mapped).
+        self.D_rope = (D_head // 6) * 6
+
+        # The number of periods is D_rope // 6, as we have 3 dimensions and each requires a sin/cos pair.
+        self.register_buffer("periods", torch.empty(self.D_rope // 6, device=device, dtype=dtype), persistent=True)
         self._init_weights()
 
     def forward(self, *, D: int, H: int, W: int) -> tuple[Tensor, Tensor]:
@@ -231,16 +233,24 @@ class RopePositionEmbedding3D(nn.Module):
             coords *= rescale
 
         # Prepare angles and sin/cos
-        # coords is [DHW, 3], periods is [D_head//6]
-        # angles becomes [DHW, 3, D_head//6]
+        # coords is [DHW, 3], periods is [D_rope//6]
+        # angles becomes [DHW, 3, D_rope//6]
         angles = 2 * math.pi * coords[:, :, None] / self.periods[None, None, :]
         # Flatten the last two dimensions to combine pos info from D, H, W
-        # angles becomes [DHW, 3 * D_head//6] = [DHW, D_head//2]
+        # angles becomes [DHW, 3 * D_rope//6] = [DHW, D_rope//2]
         angles = angles.flatten(1, 2)
-        # Tile for the sin/cos pairs, resulting in [DHW, D_head]
+        # Tile for the sin/cos pairs, resulting in [DHW, D_rope]
         angles = angles.tile(1, 2)
-        cos = torch.cos(angles)  # [DHW, D_head]
-        sin = torch.sin(angles)  # [DHW, D_head]
+        cos = torch.cos(angles)  # [DHW, D_rope]
+        sin = torch.sin(angles)  # [DHW, D_rope]
+
+        # Pad sin/cos to the full head dimension if D_head is not divisible by 6
+        if self.D_rope < self.D_head:
+            pad_width = self.D_head - self.D_rope
+            # We pad the last dimension on the right side.
+            padding = (0, pad_width)
+            sin = F.pad(sin, padding)
+            cos = F.pad(cos, padding)
 
         return (sin, cos)
 
@@ -248,13 +258,11 @@ class RopePositionEmbedding3D(nn.Module):
         device = self.periods.device
         dtype = self.dtype
         if self.base is not None:
-            # The denominator is D_head // 3, which is 2 * (D_head // 6)
-            periods = self.base ** (
-                2 * torch.arange(self.D_head // 6, device=device, dtype=dtype) / (self.D_head // 3)
-            )
+            # The denominator is D_rope // 3, which is 2 * (D_rope // 6)
+            periods = self.base ** (2 * torch.arange(self.D_rope // 6, device=device, dtype=dtype) / (self.D_rope // 3))
         else:
             base = self.max_period / self.min_period
-            exponents = torch.linspace(0, 1, self.D_head // 6, device=device, dtype=dtype)
+            exponents = torch.linspace(0, 1, self.D_rope // 6, device=device, dtype=dtype)
             periods = base**exponents
             periods = periods / base
             periods = periods * self.max_period
