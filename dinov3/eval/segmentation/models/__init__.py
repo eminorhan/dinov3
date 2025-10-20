@@ -9,10 +9,10 @@ from functools import partial
 import torch
 
 from dinov3.eval.segmentation.models.backbone.dinov3_adapter import DINOv3_Adapter
-from dinov3.eval.segmentation.models.heads.linear_head import LinearHead
+from dinov3.eval.segmentation.models.heads.linear_head import LinearHead, LinearHead3D
 from dinov3.eval.segmentation.models.heads.mask2former_head import Mask2FormerHead
 from dinov3.eval.utils import ModelWithIntermediateLayers
-
+from dinov3.layers import PatchEmbed
 
 class BackboneLayersSet(Enum):
     """
@@ -107,14 +107,18 @@ def build_segmentation_decoder(
             return_class_token=False,
         )
         # Important: we freeze the backbone
-        # backbone_model.requires_grad_(False)
+        # backbone_model.requires_grad_(False)  # TODO: what to do to this?
         embed_dim = backbone_model.feature_model.embed_dim
         if isinstance(embed_dim, int):
             if backbone_out_layers in [BackboneLayersSet.FOUR_LAST, BackboneLayersSet.FOUR_EVEN_INTERVALS]:
                 embed_dim = [embed_dim] * 4
             else:
                 embed_dim = [embed_dim]
-        decoder = LinearHead(in_channels=embed_dim, n_output_channels=num_classes)
+        # pick 2D or 3D head based on the patch_embed class of the backbone        
+        if isinstance(backbone.feature_model.patch_embed, PatchEmbed):
+            decoder = LinearHead(in_channels=embed_dim, n_output_channels=num_classes)
+        else:
+            decoder = LinearHead3D(in_channels=embed_dim, n_output_channels=num_classes)
     else:
         raise ValueError(f'Unsupported decoder "{decoder_type}"')
 
