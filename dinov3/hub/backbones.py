@@ -208,7 +208,7 @@ def _make_dinov3_vit_3D(
 
         state_dict = torch.hub.load_state_dict_from_url(url, map_location="cpu", check_hash=check_hash)
         # ====== PatchEmbed inflation ======
-        w_2d = state_dict["patch_embed.proj.weight"]
+        w_2d = state_dict["patch_embed.proj.weight"].mean(dim=1, keepdim=True)  # average over RGB channels in the original checkpoint
         
         # inflate the weights and normalize: (E, C, Ph, Pw) -> (E, C, Pd, Ph, Pw)
         w_3d = w_2d.unsqueeze(2).repeat(1, 1, patch_size, 1, 1)

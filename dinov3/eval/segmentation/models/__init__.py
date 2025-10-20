@@ -115,7 +115,7 @@ def build_segmentation_decoder(
             else:
                 embed_dim = [embed_dim]
         # pick 2D or 3D head based on the patch_embed class of the backbone        
-        if isinstance(backbone.feature_model.patch_embed, PatchEmbed):
+        if isinstance(backbone_model.feature_model.patch_embed, PatchEmbed):
             decoder = LinearHead(in_channels=embed_dim, n_output_channels=num_classes)
         else:
             decoder = LinearHead3D(in_channels=embed_dim, n_output_channels=num_classes)

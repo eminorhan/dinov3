@@ -8,6 +8,7 @@ from dinov3.hub.backbones import (
     dinov3_convnext_large,
     dinov3_convnext_small,
     dinov3_convnext_tiny,
+    dinov3_vit7b_3D16,
     dinov3_vit7b16,
     dinov3_vitb16,
     dinov3_vith16plus,
