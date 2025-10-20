@@ -153,6 +153,7 @@ class PatchEmbed3D(nn.Module):
 
         # Project to patches and flatten
         x = self.proj(x)  # B, E, D_grid, H_grid, W_grid
+        D, H, W = x.size(2), x.size(3), x.size(4)
         x = x.flatten(2).transpose(1, 2)  # B, (D_grid*H_grid*W_grid), E
         x = self.norm(x)
         if not self.flatten_embedding:

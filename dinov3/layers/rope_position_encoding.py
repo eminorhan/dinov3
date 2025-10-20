@@ -9,6 +9,7 @@ from typing import Literal
 import numpy as np
 import torch
 from torch import Tensor, nn
+import torch.nn.functional as F
 
 
 # RoPE positional embedding with no mixing of coordinates (axial) and no learnable weights
