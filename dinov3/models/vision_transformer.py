@@ -216,11 +216,11 @@ class DinoVisionTransformer(nn.Module):
         output = []
         for idx, (x, masks) in enumerate(zip(all_x, masks_list)):
             if self.untie_cls_and_patch_norms or self.untie_global_and_local_cls_norm:
-                if self.untie_global_and_local_cls_norm and self.training and idx == 1:
-                    # Assume second entry of list corresponds to local crops.
-                    # We only ever apply this during training.
-                    x_norm_cls_reg = self.local_cls_norm(x[:, : self.n_storage_tokens + 1])
-                elif self.untie_cls_and_patch_norms:
+                # if self.untie_global_and_local_cls_norm and self.training and idx == 1:
+                #     # Assume second entry of list corresponds to local crops.
+                #     # We only ever apply this during training.
+                #     x_norm_cls_reg = self.local_cls_norm(x[:, : self.n_storage_tokens + 1])
+                if self.untie_cls_and_patch_norms:
                     x_norm_cls_reg = self.cls_norm(x[:, : self.n_storage_tokens + 1])
                 else:
                     x_norm_cls_reg = self.norm(x[:, : self.n_storage_tokens + 1])
@@ -436,6 +436,7 @@ class DinoVisionTransformer3D(nn.Module):
         x = x.flatten(1, 3)  # B D*H*W E
 
         if masks is not None:
+            logger.info(f"Masks is not none!")
             x = torch.where(masks.unsqueeze(-1), self.mask_token.to(x.dtype).unsqueeze(0), x)
             cls_token = self.cls_token
         else:
@@ -452,6 +453,8 @@ class DinoVisionTransformer3D(nn.Module):
     def forward_features_list(self, x_list: List[Tensor], masks_list: List[Tensor]) -> List[Dict[str, Tensor]]:
         x = []
         rope = []
+        logger.info(f"Len masks_list: {len(masks_list)}")
+        logger.info(f"Len x_list: {len(x_list)}")
         for t_x, t_masks in zip(x_list, masks_list):
             t2_x, dhw_tuple = self.prepare_tokens_with_masks(t_x, t_masks)
             x.append(t2_x)
@@ -466,11 +469,11 @@ class DinoVisionTransformer3D(nn.Module):
         output = []
         for idx, (x, masks) in enumerate(zip(all_x, masks_list)):
             if self.untie_cls_and_patch_norms or self.untie_global_and_local_cls_norm:
-                if self.untie_global_and_local_cls_norm and self.training and idx == 1:
-                    # Assume second entry of list corresponds to local crops.
-                    # We only ever apply this during training.
-                    x_norm_cls_reg = self.local_cls_norm(x[:, : self.n_storage_tokens + 1])
-                elif self.untie_cls_and_patch_norms:
+                # if self.untie_global_and_local_cls_norm and self.training and idx == 1:
+                #     # Assume second entry of list corresponds to local crops.
+                #     # We only ever apply this during training.
+                #     x_norm_cls_reg = self.local_cls_norm(x[:, : self.n_storage_tokens + 1])
+                if self.untie_cls_and_patch_norms:
                     x_norm_cls_reg = self.cls_norm(x[:, : self.n_storage_tokens + 1])
                 else:
                     x_norm_cls_reg = self.norm(x[:, : self.n_storage_tokens + 1])
@@ -644,6 +647,7 @@ def vit_7b(patch_size=16, **kwargs):
     return model
 
 
+# 3D models
 def vit_7b_3D(patch_size=16, **kwargs):
     model = DinoVisionTransformer3D(
         patch_size=patch_size,
@@ -651,6 +655,17 @@ def vit_7b_3D(patch_size=16, **kwargs):
         depth=40,
         num_heads=32,
         ffn_ratio=3,
+        **kwargs,
+    )
+    return model
+
+def vit_large_3D(patch_size=16, **kwargs):
+    model = DinoVisionTransformer3D(
+        patch_size=patch_size,
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
+        ffn_ratio=4,
         **kwargs,
     )
     return model

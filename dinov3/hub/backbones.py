@@ -208,7 +208,10 @@ def _make_dinov3_vit_3D(
 
         state_dict = torch.hub.load_state_dict_from_url(url, map_location="cpu", check_hash=check_hash)
         # ====== PatchEmbed inflation ======
-        w_2d = state_dict["patch_embed.proj.weight"].mean(dim=1, keepdim=True)  # average over RGB channels in the original checkpoint
+        if in_chans == 3:
+            w_2d = state_dict["patch_embed.proj.weight"]  # use the weights as is
+        else:
+            w_2d = state_dict["patch_embed.proj.weight"].mean(dim=1, keepdim=True)  # average over RGB channels in the original checkpoint
         
         # inflate the weights and normalize: (E, C, Ph, Pw) -> (E, C, Pd, Ph, Pw)
         w_3d = w_2d.unsqueeze(2).repeat(1, 1, patch_size, 1, 1)
@@ -386,6 +389,62 @@ def dinov3_vitb16(
         pretrained=pretrained,
         weights=weights,
         compact_arch_name="vitb",
+        check_hash=check_hash,
+        **kwargs,
+    )
+
+
+def dinov3_vitl_3D16(
+    *,
+    pretrained: bool = True,
+    weights: Union[Weights, str] = Weights.LVD1689M,
+    check_hash: bool = False,
+    **kwargs,
+):
+    untie_global_and_local_cls_norm = False
+    if weights == Weights.LVD1689M:
+        if "hash" not in kwargs:
+            kwargs["hash"] = "8aa4cbdd"
+    elif weights == Weights.SAT493M:
+        if "hash" not in kwargs:
+            kwargs["hash"] = "eadcf0ff"
+        untie_global_and_local_cls_norm = True
+    elif type(weights) is str:
+        import re
+
+        pattern = r"-(.{8}).pth"
+        matches = re.findall(pattern, weights)
+        if len(matches) != 1:
+            raise ValueError(f"Unexpected weights specification for the ViT-L backbone: {weights}")
+        hash = matches[0]
+        if hash == "eadcf0ff":
+            untie_global_and_local_cls_norm = True
+    kwargs["version"] = None
+    return _make_dinov3_vit_3D(
+        img_size=224,
+        patch_size=16,
+        in_chans=3,
+        pos_embed_rope_base=100,
+        pos_embed_rope_normalize_coords="separate",
+        pos_embed_rope_rescale_coords=2,
+        pos_embed_rope_dtype="fp32",
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
+        ffn_ratio=4,
+        qkv_bias=True,
+        drop_path_rate=0.0,
+        layerscale_init=1.0e-05,
+        norm_layer="layernormbf16",
+        ffn_layer="mlp",
+        ffn_bias=True,
+        proj_bias=True,
+        n_storage_tokens=4,
+        mask_k_bias=True,
+        untie_global_and_local_cls_norm=untie_global_and_local_cls_norm,
+        pretrained=pretrained,
+        weights=weights,
+        compact_arch_name="vitl",
         check_hash=check_hash,
         **kwargs,
     )

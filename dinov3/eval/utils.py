@@ -86,9 +86,7 @@ class ModelWithIntermediateLayers(nn.Module):
         self.return_class_token = return_class_token
 
     def forward(self, images):
-        with torch.inference_mode():
-            with self.autocast_ctx():
-                features = self.feature_model.get_intermediate_layers(images, n=self.n, reshape=self.reshape, return_class_token=self.return_class_token)
+        features = self.feature_model.get_intermediate_layers(images, n=self.n, reshape=self.reshape, return_class_token=self.return_class_token)
         return features
 
 

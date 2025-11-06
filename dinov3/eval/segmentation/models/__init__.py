@@ -107,7 +107,6 @@ def build_segmentation_decoder(
             return_class_token=False,
         )
         # Important: we freeze the backbone
-        # backbone_model.requires_grad_(False)  # TODO: what to do to this?
         embed_dim = backbone_model.feature_model.embed_dim
         if isinstance(embed_dim, int):
             if backbone_out_layers in [BackboneLayersSet.FOUR_LAST, BackboneLayersSet.FOUR_EVEN_INTERVALS]:
