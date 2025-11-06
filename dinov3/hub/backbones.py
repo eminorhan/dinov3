@@ -394,8 +394,9 @@ def dinov3_vitb16(
     )
 
 
-def dinov3_vitl_3D16(
+def dinov3_vitl16_3D(
     *,
+    in_chans: int = 1,
     pretrained: bool = True,
     weights: Union[Weights, str] = Weights.LVD1689M,
     check_hash: bool = False,
@@ -423,7 +424,7 @@ def dinov3_vitl_3D16(
     return _make_dinov3_vit_3D(
         img_size=224,
         patch_size=16,
-        in_chans=3,
+        in_chans=in_chans,
         pos_embed_rope_base=100,
         pos_embed_rope_normalize_coords="separate",
         pos_embed_rope_rescale_coords=2,
@@ -545,6 +546,46 @@ def dinov3_vitl16plus(
     )
 
 
+def dinov3_vith16plus_3D(
+    *,
+    in_chans: int = 1,
+    pretrained: bool = True,
+    weights: Union[Weights, str] = Weights.LVD1689M,
+    check_hash: bool = False,
+    **kwargs,
+):
+    if "hash" not in kwargs:
+        kwargs["hash"] = "7c1da9a5"
+
+    return _make_dinov3_vit_3D(
+        img_size=224,
+        patch_size=16,
+        in_chans=in_chans,
+        pos_embed_rope_base=100,
+        pos_embed_rope_normalize_coords="separate",
+        pos_embed_rope_rescale_coords=2,
+        pos_embed_rope_dtype="fp32",
+        embed_dim=1280,
+        depth=32,
+        num_heads=20,
+        ffn_ratio=6.0,
+        qkv_bias=True,
+        drop_path_rate=0.0,
+        layerscale_init=1.0e-05,
+        norm_layer="layernormbf16",
+        ffn_layer="swiglu",
+        ffn_bias=True,
+        proj_bias=True,
+        n_storage_tokens=4,
+        mask_k_bias=True,
+        pretrained=pretrained,
+        weights=weights,
+        compact_arch_name="vithplus",
+        check_hash=check_hash,
+        **kwargs,
+    )
+
+
 def dinov3_vith16plus(
     *,
     pretrained: bool = True,
@@ -629,8 +670,9 @@ def dinov3_vit7b16(
     )
 
 
-def dinov3_vit7b_3D16(
+def dinov3_vit7b16_3D(
     *,
+    in_chans: int = 1,
     pretrained: bool = True,
     weights: Union[Weights, str] = Weights.LVD1689M,
     check_hash: bool = False,
@@ -647,7 +689,7 @@ def dinov3_vit7b_3D16(
     return _make_dinov3_vit_3D(
         img_size=224,
         patch_size=16,
-        in_chans=1,
+        in_chans=in_chans,
         pos_embed_rope_base=100,
         pos_embed_rope_normalize_coords="separate",
         pos_embed_rope_rescale_coords=2,

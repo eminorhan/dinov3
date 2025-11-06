@@ -1,6 +1,7 @@
 import torch
 from PIL import Image
 from torchvision.transforms import v2
+from dinov3.eval.segmentation.models import build_segmentation_decoder
 
 # helper functions
 def get_img():
@@ -23,11 +24,12 @@ DINOV3_REPO_PATH = "/lustre/gale/stf218/scratch/emin/dinov3"  # dinov3 repo path
 torch.hub.set_dir(TORCH_HUB_PATH)
 
 backbone = torch.hub.load(DINOV3_REPO_PATH, "dinov3_vitl16_3D", source="local", weights=f"{TORCH_HUB_PATH}/checkpoints/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth", in_chans=3)
+model = build_segmentation_decoder(backbone, decoder_type="linear", num_classes=64)
 
-print(f"Backbone architecture:\n\n{backbone}")
+print(f"Segmentation model architecture:\n\n{model}")
 print(f"=========================================================================")
 
-backbone.eval()
+model.eval()
 
 # we inflate 2d image to 3d 
 img_size = 512  # size of 2d dims
@@ -42,5 +44,5 @@ with torch.inference_mode():
         B, C, H, W = transformed_img.shape
         inflated_img = transformed_img.unsqueeze(2).expand(B, C, D, H, W)  # expand is more memory efficient
         print(f"inflated_img shape: {inflated_img.shape}")
-        preds = backbone(inflated_img)  # model predictions 
+        preds = model(inflated_img)  # model predictions 
         print(f"preds (vitl) shape: {preds.shape}")
