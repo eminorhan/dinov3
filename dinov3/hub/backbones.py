@@ -208,6 +208,8 @@ def _make_dinov3_vit_3D(
 
         state_dict = torch.hub.load_state_dict_from_url(url, map_location="cpu", check_hash=check_hash)
         # ====== PatchEmbed inflation ======
+        assert in_chans in (1, 3), f"Number of input channels (in_chans) must be 1 or 3, but got {in_chans}."
+
         if in_chans == 3:
             w_2d = state_dict["patch_embed.proj.weight"]  # use the weights as is
         else:
