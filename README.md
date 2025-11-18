@@ -1,3 +1,15 @@
+## Installing FlashAttention-3
+
+The model implementations in this fork will use [FlashAttention-3](https://github.com/Dao-AILab/flash-attention?tab=readme-ov-file#flashattention-3-beta-release) (FA-3) for self-attention computations if FA-3 is installed, otherwise it will fall back on `F.scaled_dot_product_attention` (the original implementation always uses `F.scaled_dot_product_attention`). FA-3 yields significant improvements in speed over `F.scaled_dot_product_attention` on Hopper GPUs, so we encourage the users to install FA-3 if they're running the code here on Hopper GPUs. To install FA-3:
+```bash
+git clone https://github.com/Dao-AILab/flash-attention.git
+cd flash-attention/hopper
+python setup.py install
+```
+See [here](https://github.com/Dao-AILab/flash-attention?tab=readme-ov-file#flashattention-3-beta-release) for further details.
+
+##
+
 🆕 [2025-09-17] :fire: DINOv3 backbones are now supported by the [PyTorch Image Models / timm](https://github.com/huggingface/pytorch-image-models/) library starting with version [1.0.20](https://github.com/huggingface/pytorch-image-models/releases/tag/v1.0.20)
 
 [2025-08-29] DINOv3 backbones are [supported](https://huggingface.co/docs/transformers/model_doc/dinov3) by released versions of the Hugging Face [Transformers](https://huggingface.co/docs/transformers/index) library starting with version [4.56.0](https://github.com/huggingface/transformers/releases/tag/v4.56.0)
