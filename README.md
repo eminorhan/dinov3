@@ -1,6 +1,6 @@
 ## Installing FlashAttention-3
 
-The model implementations in this fork will use [FlashAttention-3](https://github.com/Dao-AILab/flash-attention?tab=readme-ov-file#flashattention-3-beta-release) (FA-3) for self-attention computations if FA-3 is installed, otherwise it will fall back on `F.scaled_dot_product_attention` (the original implementation always uses `F.scaled_dot_product_attention`). FA-3 yields significant improvements in speed over `F.scaled_dot_product_attention` on Hopper GPUs, so we encourage the users to install FA-3 if they're running the code here on Hopper GPUs. To install FA-3:
+The model implementations in this fork will use [FlashAttention-3](https://github.com/Dao-AILab/flash-attention?tab=readme-ov-file#flashattention-3-beta-release) (FA-3) for self-attention computations if FA-3 is installed, otherwise it will fall back on `F.scaled_dot_product_attention` (the original implementation always uses `F.scaled_dot_product_attention`). FA-3 yields significant improvements in speed and memory usage over `F.scaled_dot_product_attention` on Hopper GPUs, so we encourage the users to install FA-3 if they're running the code here on Hopper GPUs. To install FA-3:
 ```bash
 git clone https://github.com/Dao-AILab/flash-attention.git
 cd flash-attention/hopper
