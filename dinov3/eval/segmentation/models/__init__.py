@@ -53,22 +53,19 @@ def _get_backbone_out_indices(
 
 
 class FeatureDecoder(torch.nn.Module):
-    def __init__(self, segmentation_model: torch.nn.ModuleList, autocast_ctx):
+    def __init__(self, segmentation_model: torch.nn.ModuleList):
         super().__init__()
         self.segmentation_model = segmentation_model
-        self.autocast_ctx = autocast_ctx
 
     def forward(self, inputs):
-        with self.autocast_ctx():
-            for module in self.segmentation_model:
-                inputs = module.forward(inputs)
+        for module in self.segmentation_model:
+            inputs = module.forward(inputs)
         return inputs
 
     def predict(self, inputs, rescale_to=(512, 512)):
         with torch.inference_mode():
-            with self.autocast_ctx():
-                out = self.segmentation_model[0](inputs)  # backbone forward
-                out = self.segmentation_model[1].predict(out, rescale_to=rescale_to)  # decoder head prediction
+            out = self.segmentation_model[0](inputs)  # backbone forward
+            out = self.segmentation_model[1].predict(out, rescale_to=rescale_to)  # decoder head prediction
         return out
 
 
@@ -78,10 +75,8 @@ def build_segmentation_decoder(
     decoder_type="linear",
     hidden_dim=2048,
     num_classes=150,
-    autocast_dtype=torch.float32,
 ):
     backbone_indices_to_use = _get_backbone_out_indices(backbone_model, backbone_out_layers)
-    autocast_ctx = partial(torch.autocast, device_type="cuda", enabled=True, dtype=autocast_dtype)
     if decoder_type == "m2f":
         backbone_model = DINOv3_Adapter(backbone_model, interaction_indexes=backbone_indices_to_use)
         backbone_model.eval()
@@ -102,7 +97,6 @@ def build_segmentation_decoder(
         backbone_model = ModelWithIntermediateLayers(
             backbone_model,
             n=backbone_indices_to_use,
-            autocast_ctx=autocast_ctx,
             reshape=True,
             return_class_token=False,
         )
@@ -121,5 +115,5 @@ def build_segmentation_decoder(
     else:
         raise ValueError(f'Unsupported decoder "{decoder_type}"')
 
-    segmentation_model = FeatureDecoder(torch.nn.ModuleList([backbone_model, decoder]), autocast_ctx=autocast_ctx)
+    segmentation_model = FeatureDecoder(torch.nn.ModuleList([backbone_model, decoder]))
     return segmentation_model

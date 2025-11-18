@@ -4,12 +4,22 @@
 # the terms of the DINOv3 License Agreement.
 
 import math
+import logging
 from typing import List, Tuple
 
 import torch
 import torch.nn.functional as F
 from dinov3.utils import cat_keep_shapes, uncat_with_shapes
 from torch import Tensor, nn
+
+logger = logging.getLogger("dinov3")
+
+try:
+    import flash_attn_interface
+    USE_FA3 = True  # using FlashAtttention-3
+    logger.info("FlashAttention-3 is installed. Using FlashAttention-3 for self-attention computations...")
+except ImportError:
+    USE_FA3 = False  # using FlashAtttention-2
 
 
 # RoPE-related functions:
@@ -110,11 +120,20 @@ class SelfAttention(nn.Module):
 
         qkv = qkv.reshape(B, N, 3, self.num_heads, C // self.num_heads)
         q, k, v = torch.unbind(qkv, 2)
-        q, k, v = [t.transpose(1, 2) for t in [q, k, v]]
+
+        q, k = [t.transpose(1, 2) for t in [q, k]]
         if rope is not None:
             q, k = self.apply_rope(q, k, rope)
-        x = torch.nn.functional.scaled_dot_product_attention(q, k, v)
-        x = x.transpose(1, 2)
+
+        if USE_FA3:
+            # use FlashAttention-3 if available
+            q, k = [t.transpose(1, 2) for t in [q, k]]
+            x = flash_attn_interface.flash_attn_func(q, k, v, causal=False)
+        else:
+            # fall back on FlashAttention-2 if not
+            x = torch.nn.functional.scaled_dot_product_attention(q, k, v)
+            x = x.transpose(1, 2)
+
         return x.reshape([B, N, C])
 
 
@@ -156,9 +175,7 @@ class CausalSelfAttention(nn.Module):
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads)
         q, k, v = torch.unbind(qkv, 2)
         q, k, v = [t.transpose(1, 2) for t in [q, k, v]]
-        x = torch.nn.functional.scaled_dot_product_attention(
-            q, k, v, attn_mask=None, dropout_p=self.attn_drop if self.training else 0, is_causal=is_causal
-        )
+        x = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.attn_drop if self.training else 0, is_causal=is_causal)
         x = x.transpose(1, 2).contiguous().view(B, N, C)
         x = self.proj_drop(self.proj(x))
         return x

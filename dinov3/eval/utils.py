@@ -76,12 +76,10 @@ def wrap_model(
 
 
 class ModelWithIntermediateLayers(nn.Module):
-    def __init__(self, feature_model, n, autocast_ctx, reshape=False, return_class_token=True):
+    def __init__(self, feature_model, n, reshape=False, return_class_token=True):
         super().__init__()
         self.feature_model = feature_model
-        self.feature_model.eval()
         self.n = n  # Layer indices (Sequence) or n last layers (int) to take
-        self.autocast_ctx = autocast_ctx
         self.reshape = reshape
         self.return_class_token = return_class_token
 
