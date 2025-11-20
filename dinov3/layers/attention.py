@@ -15,12 +15,13 @@ from torch import Tensor, nn
 logger = logging.getLogger("dinov3")
 
 try:
+    # Try to import the Hopper-specific FlashAttention-3
     import flash_attn_interface
-    USE_FA3 = True  # using FlashAtttention-3
-    logger.info("FlashAttention-3 is installed. Using FlashAttention-3 for self-attention computations...")
+    HAS_FA3 = True
 except ImportError:
-    USE_FA3 = False  # using FlashAtttention-2
-
+    # Fallback if library is missing
+    flash_attn_interface = None
+    HAS_FA3 = False
 
 # RoPE-related functions:
 def rope_rotate_half(x: Tensor) -> Tensor:
@@ -60,9 +61,16 @@ class SelfAttention(nn.Module):
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
         mask_k_bias: bool = False,
+        use_fa3: bool = False,
         device=None,
     ) -> None:
         super().__init__()
+
+        if use_fa3 and not HAS_FA3:
+            raise ImportError("use_fa3=True was requested, but 'flash_attn_interface' could not be imported. Please install FlashAttention-3 or set use_fa3=False.")
+        
+        self.use_fa3 = use_fa3
+
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = head_dim**-0.5
@@ -125,7 +133,7 @@ class SelfAttention(nn.Module):
         if rope is not None:
             q, k = self.apply_rope(q, k, rope)
 
-        if USE_FA3:
+        if self.use_fa3:
             # use FlashAttention-3 if available
             q, k = [t.transpose(1, 2) for t in [q, k]]
             x = flash_attn_interface.flash_attn_func(q, k, v, causal=False)
