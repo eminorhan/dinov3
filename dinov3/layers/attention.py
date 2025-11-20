@@ -131,6 +131,7 @@ class SelfAttention(nn.Module):
             x = flash_attn_interface.flash_attn_func(q, k, v, causal=False)
         else:
             # fall back on FlashAttention-2 if not
+            v = v.transpose(1, 2)
             x = torch.nn.functional.scaled_dot_product_attention(q, k, v)
             x = x.transpose(1, 2)
 

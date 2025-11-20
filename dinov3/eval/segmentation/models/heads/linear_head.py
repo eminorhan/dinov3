@@ -121,7 +121,9 @@ class LinearHead3D(nn.Module):
 
         # Use 3D convolution and dropout for volumetric data
         self.conv = nn.Conv3d(self.channels, self.n_output_channels, kernel_size=1, padding=0, stride=1)
-        self.dropout = nn.Dropout3d(0.1)
+        self.layer_norm = nn.LayerNorm([self.channels, 32, 32, 32])
+
+        # self.dropout = nn.Dropout3d(0.1)
 
         # Initialize weights
         nn.init.normal_(self.conv.weight, mean=0, std=0.01)
@@ -194,9 +196,9 @@ class LinearHead3D(nn.Module):
             Tensor: The output segmentation logits of shape (B, n_output_channels, D, H, W).
         """
         output = self._forward_feature(inputs)
-        output = self.dropout(output)
+        # output = self.dropout(output)
         # Normalize over the spatial dimensions (D, H, W) for each channel
-        output = F.layer_norm(output, output.shape[-4:])
+        output = self.layer_norm(output)
         output = self.conv(output)
         return output
 

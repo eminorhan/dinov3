@@ -125,7 +125,7 @@ class RopePositionEmbedding3D(nn.Module):
         embed_dim: int,
         *,
         num_heads: int,
-        base: float | None = 100.0,
+        base: float | None = 10.0,
         min_period: float | None = None,
         max_period: float | None = None,
         normalize_coords: Literal["min", "max", "separate"] = "separate",

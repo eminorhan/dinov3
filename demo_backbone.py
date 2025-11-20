@@ -30,8 +30,8 @@ print(f"========================================================================
 backbone.eval()
 
 # we inflate 2d image to 3d 
-img_size = 512  # size of 2d dims
-D = 512  # size of new dim
+img_size = 128  # size of 2d dims
+D = 128  # size of new dim
 img  = get_img()
 transform = make_transform(img_size)
 
@@ -39,8 +39,16 @@ with torch.inference_mode():
     with torch.autocast('cuda', dtype=torch.bfloat16):
         transformed_img = transform(img)[None]
         print(f"transformed_img shape: {transformed_img.shape}")
+
         B, C, H, W = transformed_img.shape
-        inflated_img = transformed_img.unsqueeze(2).expand(B, C, D, H, W)  # expand is more memory efficient
+        inflated_img = transformed_img.unsqueeze(2).expand(B, C, D, H, W)  # expand is more memory efficient than repeat
         print(f"inflated_img shape: {inflated_img.shape}")
+
         preds = backbone(inflated_img)  # model predictions 
+        spatial_preds = backbone.get_intermediate_layers(inflated_img, n=1, reshape=True, return_class_token=False)  # feature maps
+        features = backbone.forward_features(inflated_img)  # final feature map
+        print(f"spatial preds (vitl) len: {len(spatial_preds)}")
+        print(f"spatial preds (vitl) shape: {spatial_preds[0].shape}")
+        print(f"x_norm_patchtokens (vitl) shape: {features['x_norm_patchtokens'].shape}")
+        print(f"x_prenorm (vitl) shape: {features['x_prenorm'].shape}")        
         print(f"preds (vitl) shape: {preds.shape}")
