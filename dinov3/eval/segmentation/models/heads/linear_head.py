@@ -25,7 +25,6 @@ class LinearHead(nn.Module):
         self.n_output_channels = n_output_channels
         self.use_cls_token = use_cls_token
         self.conv = nn.Conv2d(self.channels, self.n_output_channels, kernel_size=1, padding=0, stride=1)
-        self.dropout = nn.Dropout2d(0.1)
         nn.init.normal_(self.conv.weight, mean=0, std=0.01)
         nn.init.constant_(self.conv.bias, 0)
 
@@ -76,7 +75,6 @@ class LinearHead(nn.Module):
     def forward(self, inputs):
         """Forward function."""
         output = self._forward_feature(inputs)
-        output = self.dropout(output)
         output = F.layer_norm(output, output.shape[-3:])
         output = self.conv(output)
         return output

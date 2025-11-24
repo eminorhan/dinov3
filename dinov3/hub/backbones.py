@@ -459,6 +459,7 @@ def dinov3_vitl16_3D(
 
 def dinov3_vitl16(
     *,
+    in_chans: int = 1,
     pretrained: bool = True,
     weights: Union[Weights, str] = Weights.LVD1689M,
     check_hash: bool = False,
@@ -486,7 +487,7 @@ def dinov3_vitl16(
     return _make_dinov3_vit(
         img_size=224,
         patch_size=16,
-        in_chans=3,
+        in_chans=in_chans,
         pos_embed_rope_base=100,
         pos_embed_rope_normalize_coords="separate",
         pos_embed_rope_rescale_coords=2,
@@ -567,7 +568,7 @@ def dinov3_vith16plus_3D(
         img_size=224,
         patch_size=16,
         in_chans=in_chans,
-        pos_embed_rope_base=100,
+        pos_embed_rope_base=10,
         pos_embed_rope_normalize_coords="separate",
         pos_embed_rope_rescale_coords=2,
         pos_embed_rope_dtype="fp32",
@@ -594,6 +595,7 @@ def dinov3_vith16plus_3D(
 
 def dinov3_vith16plus(
     *,
+    in_chans: int = 1,
     pretrained: bool = True,
     weights: Union[Weights, str] = Weights.LVD1689M,
     check_hash: bool = False,
@@ -605,7 +607,7 @@ def dinov3_vith16plus(
     return _make_dinov3_vit(
         img_size=224,
         patch_size=16,
-        in_chans=3,
+        in_chans=in_chans,
         pos_embed_rope_base=100,
         pos_embed_rope_normalize_coords="separate",
         pos_embed_rope_rescale_coords=2,
@@ -633,6 +635,7 @@ def dinov3_vith16plus(
 
 def dinov3_vit7b16(
     *,
+    in_chans: int = 1,
     pretrained: bool = True,
     weights: Union[Weights, str] = Weights.LVD1689M,
     check_hash: bool = False,
@@ -649,7 +652,7 @@ def dinov3_vit7b16(
     return _make_dinov3_vit(
         img_size=224,
         patch_size=16,
-        in_chans=3,
+        in_chans=in_chans,
         pos_embed_rope_base=100,
         pos_embed_rope_normalize_coords="separate",
         pos_embed_rope_rescale_coords=2,
@@ -696,7 +699,7 @@ def dinov3_vit7b16_3D(
         img_size=224,
         patch_size=16,
         in_chans=in_chans,
-        pos_embed_rope_base=100,
+        pos_embed_rope_base=10,
         pos_embed_rope_normalize_coords="separate",
         pos_embed_rope_rescale_coords=2,
         pos_embed_rope_dtype="fp32",
