@@ -130,6 +130,15 @@ def _make_dinov3_vit(
         else:
             url = convert_path_or_url_to_url(weights)
         state_dict = torch.hub.load_state_dict_from_url(url, map_location="cpu", check_hash=check_hash)
+
+        ## ====== adjust patch embedding kernels for in_chans ======
+        assert in_chans in (1, 3), f"Number of input channels (in_chans) must be 1 or 3, but got {in_chans}."
+        if in_chans == 3:
+            w_2d = state_dict["patch_embed.proj.weight"]  # use the weights as is
+        else:
+            w_2d = state_dict["patch_embed.proj.weight"].mean(dim=1, keepdim=True)  # average over RGB channels in the original checkpoint
+        state_dict["patch_embed.proj.weight"] = w_2d
+        ## =========================================================
         model.load_state_dict(state_dict, strict=True)
     else:
         model.init_weights()
@@ -400,6 +409,63 @@ def dinov3_vitb16(
     )
 
 
+def dinov3_vitl16(
+    *,
+    in_chans: int = 3,
+    pretrained: bool = True,
+    weights: Union[Weights, str] = Weights.LVD1689M,
+    check_hash: bool = False,
+    **kwargs,
+):
+    untie_global_and_local_cls_norm = False
+    if weights == Weights.LVD1689M:
+        if "hash" not in kwargs:
+            kwargs["hash"] = "8aa4cbdd"
+    elif weights == Weights.SAT493M:
+        if "hash" not in kwargs:
+            kwargs["hash"] = "eadcf0ff"
+        untie_global_and_local_cls_norm = True
+    elif type(weights) is str:
+        import re
+
+        pattern = r"-(.{8}).pth"
+        matches = re.findall(pattern, weights)
+        if len(matches) != 1:
+            raise ValueError(f"Unexpected weights specification for the ViT-L backbone: {weights}")
+        hash = matches[0]
+        if hash == "eadcf0ff":
+            untie_global_and_local_cls_norm = True
+    kwargs["version"] = None
+    return _make_dinov3_vit(
+        img_size=224,
+        patch_size=16,
+        in_chans=in_chans,
+        pos_embed_rope_base=100,
+        pos_embed_rope_normalize_coords="separate",
+        pos_embed_rope_rescale_coords=2,
+        pos_embed_rope_dtype="fp32",
+        embed_dim=1024,
+        depth=24,
+        num_heads=16,
+        ffn_ratio=4,
+        qkv_bias=True,
+        drop_path_rate=0.0,
+        layerscale_init=1.0e-05,
+        norm_layer="layernormbf16",
+        ffn_layer="mlp",
+        ffn_bias=True,
+        proj_bias=True,
+        n_storage_tokens=4,
+        mask_k_bias=True,
+        untie_global_and_local_cls_norm=untie_global_and_local_cls_norm,
+        pretrained=pretrained,
+        weights=weights,
+        compact_arch_name="vitl",
+        check_hash=check_hash,
+        **kwargs,
+    )
+
+
 def dinov3_vitl16_3D(
     *,
     in_chans: int = 1,
@@ -432,63 +498,6 @@ def dinov3_vitl16_3D(
         patch_size=16,
         in_chans=in_chans,
         pos_embed_rope_base=10,
-        pos_embed_rope_normalize_coords="separate",
-        pos_embed_rope_rescale_coords=2,
-        pos_embed_rope_dtype="fp32",
-        embed_dim=1024,
-        depth=24,
-        num_heads=16,
-        ffn_ratio=4,
-        qkv_bias=True,
-        drop_path_rate=0.0,
-        layerscale_init=1.0e-05,
-        norm_layer="layernormbf16",
-        ffn_layer="mlp",
-        ffn_bias=True,
-        proj_bias=True,
-        n_storage_tokens=4,
-        mask_k_bias=True,
-        untie_global_and_local_cls_norm=untie_global_and_local_cls_norm,
-        pretrained=pretrained,
-        weights=weights,
-        compact_arch_name="vitl",
-        check_hash=check_hash,
-        **kwargs,
-    )
-
-
-def dinov3_vitl16(
-    *,
-    in_chans: int = 1,
-    pretrained: bool = True,
-    weights: Union[Weights, str] = Weights.LVD1689M,
-    check_hash: bool = False,
-    **kwargs,
-):
-    untie_global_and_local_cls_norm = False
-    if weights == Weights.LVD1689M:
-        if "hash" not in kwargs:
-            kwargs["hash"] = "8aa4cbdd"
-    elif weights == Weights.SAT493M:
-        if "hash" not in kwargs:
-            kwargs["hash"] = "eadcf0ff"
-        untie_global_and_local_cls_norm = True
-    elif type(weights) is str:
-        import re
-
-        pattern = r"-(.{8}).pth"
-        matches = re.findall(pattern, weights)
-        if len(matches) != 1:
-            raise ValueError(f"Unexpected weights specification for the ViT-L backbone: {weights}")
-        hash = matches[0]
-        if hash == "eadcf0ff":
-            untie_global_and_local_cls_norm = True
-    kwargs["version"] = None
-    return _make_dinov3_vit(
-        img_size=224,
-        patch_size=16,
-        in_chans=in_chans,
-        pos_embed_rope_base=100,
         pos_embed_rope_normalize_coords="separate",
         pos_embed_rope_rescale_coords=2,
         pos_embed_rope_dtype="fp32",
@@ -553,6 +562,46 @@ def dinov3_vitl16plus(
     )
 
 
+def dinov3_vith16plus(
+    *,
+    in_chans: int = 3,
+    pretrained: bool = True,
+    weights: Union[Weights, str] = Weights.LVD1689M,
+    check_hash: bool = False,
+    **kwargs,
+):
+    if "hash" not in kwargs:
+        kwargs["hash"] = "7c1da9a5"
+
+    return _make_dinov3_vit(
+        img_size=224,
+        patch_size=16,
+        in_chans=in_chans,
+        pos_embed_rope_base=100,
+        pos_embed_rope_normalize_coords="separate",
+        pos_embed_rope_rescale_coords=2,
+        pos_embed_rope_dtype="fp32",
+        embed_dim=1280,
+        depth=32,
+        num_heads=20,
+        ffn_ratio=6.0,
+        qkv_bias=True,
+        drop_path_rate=0.0,
+        layerscale_init=1.0e-05,
+        norm_layer="layernormbf16",
+        ffn_layer="swiglu",
+        ffn_bias=True,
+        proj_bias=True,
+        n_storage_tokens=4,
+        mask_k_bias=True,
+        pretrained=pretrained,
+        weights=weights,
+        compact_arch_name="vithplus",
+        check_hash=check_hash,
+        **kwargs,
+    )
+
+
 def dinov3_vith16plus_3D(
     *,
     in_chans: int = 1,
@@ -593,49 +642,9 @@ def dinov3_vith16plus_3D(
     )
 
 
-def dinov3_vith16plus(
-    *,
-    in_chans: int = 1,
-    pretrained: bool = True,
-    weights: Union[Weights, str] = Weights.LVD1689M,
-    check_hash: bool = False,
-    **kwargs,
-):
-    if "hash" not in kwargs:
-        kwargs["hash"] = "7c1da9a5"
-
-    return _make_dinov3_vit(
-        img_size=224,
-        patch_size=16,
-        in_chans=in_chans,
-        pos_embed_rope_base=100,
-        pos_embed_rope_normalize_coords="separate",
-        pos_embed_rope_rescale_coords=2,
-        pos_embed_rope_dtype="fp32",
-        embed_dim=1280,
-        depth=32,
-        num_heads=20,
-        ffn_ratio=6.0,
-        qkv_bias=True,
-        drop_path_rate=0.0,
-        layerscale_init=1.0e-05,
-        norm_layer="layernormbf16",
-        ffn_layer="swiglu",
-        ffn_bias=True,
-        proj_bias=True,
-        n_storage_tokens=4,
-        mask_k_bias=True,
-        pretrained=pretrained,
-        weights=weights,
-        compact_arch_name="vithplus",
-        check_hash=check_hash,
-        **kwargs,
-    )
-
-
 def dinov3_vit7b16(
     *,
-    in_chans: int = 1,
+    in_chans: int = 3,
     pretrained: bool = True,
     weights: Union[Weights, str] = Weights.LVD1689M,
     check_hash: bool = False,
