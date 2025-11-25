@@ -149,7 +149,7 @@ def _make_dinov3_vit_3D(
     *,
     img_size: int = 224,
     patch_size: int = 16,
-    in_chans: int = 1,
+    in_chans: int = 3,
     compact_arch_name: str = "vitb",
     pos_embed_rope_base: float = 10.0,
     pos_embed_rope_min_period: float | None = None,
@@ -468,7 +468,7 @@ def dinov3_vitl16(
 
 def dinov3_vitl16_3D(
     *,
-    in_chans: int = 1,
+    in_chans: int = 3,
     pretrained: bool = True,
     weights: Union[Weights, str] = Weights.LVD1689M,
     check_hash: bool = False,
@@ -604,7 +604,7 @@ def dinov3_vith16plus(
 
 def dinov3_vith16plus_3D(
     *,
-    in_chans: int = 1,
+    in_chans: int = 3,
     pretrained: bool = True,
     weights: Union[Weights, str] = Weights.LVD1689M,
     check_hash: bool = False,
@@ -690,7 +690,7 @@ def dinov3_vit7b16(
 
 def dinov3_vit7b16_3D(
     *,
-    in_chans: int = 1,
+    in_chans: int = 3,
     pretrained: bool = True,
     weights: Union[Weights, str] = Weights.LVD1689M,
     check_hash: bool = False,
