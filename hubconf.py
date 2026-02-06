@@ -10,14 +10,12 @@ from dinov3.hub.backbones import (
     dinov3_convnext_tiny,
     dinov3_vit7b16_3D,
     dinov3_vit7b16,
-    dinov3_vitb16,
     dinov3_vith16plus_3D,
     dinov3_vith16plus,
     dinov3_vitl16_3D,
     dinov3_vitl16,
-    dinov3_vitl16plus,
-    dinov3_vits16,
-    dinov3_vits16plus,
+    dinov3_vitb16_3D,
+    dinov3_vitb16,
 )
 from dinov3.hub.classifiers import dinov3_vit7b16_lc
 from dinov3.hub.detectors import dinov3_vit7b16_de

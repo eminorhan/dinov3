@@ -18,11 +18,10 @@ def make_transform(resize_size: int | list[int] = 768):
     return v2.Compose([to_tensor, resize, to_float, normalize])
 
 # change the following vars according to your setup
-TORCH_HUB_PATH = "/lustre/gale/stf218/scratch/emin/torch_hub"  # this is where the dinov3 pth checkpoints are stored
-DINOV3_REPO_PATH = "/lustre/gale/stf218/scratch/emin/dinov3"  # dinov3 repo path
+TORCH_HUB_PATH = "/lustre/blizzard/stf218/scratch/emin/torch_hub"  # this is where the dinov3 pth checkpoints are stored
+DINOV3_REPO_PATH = "/lustre/blizzard/stf218/scratch/emin/dinov3"  # dinov3 repo path
 
 torch.hub.set_dir(TORCH_HUB_PATH)
-
 backbone = torch.hub.load(DINOV3_REPO_PATH, "dinov3_vitl16_3D", source="local", weights=f"{TORCH_HUB_PATH}/checkpoints/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth", in_chans=3)
 model = build_segmentation_decoder(backbone, decoder_type="linear", num_classes=64)
 

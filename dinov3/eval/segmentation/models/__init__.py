@@ -23,10 +23,7 @@ class BackboneLayersSet(Enum):
     FOUR_LAST = "FOUR_LAST"  # extracting the four last layers
     FOUR_EVEN_INTERVALS = "FOUR_EVEN_INTERVALS"  # extracting outputs every 1/4 of the total number of blocks
 
-def _get_backbone_out_indices(
-    model: torch.nn.Module,
-    backbone_out_layers: BackboneLayersSet = BackboneLayersSet.FOUR_EVEN_INTERVALS,
-):
+def _get_backbone_out_indices(model: torch.nn.Module, backbone_out_layers: BackboneLayersSet = BackboneLayersSet.FOUR_EVEN_INTERVALS):
     """
     Get indices for output layers of the ViT backbone. For now there are 3 options available:
     BackboneLayersSet.LAST : only extract the last layer, used in segmentation tasks with a bn head.
@@ -79,7 +76,6 @@ def build_segmentation_decoder(
     backbone_indices_to_use = _get_backbone_out_indices(backbone_model, backbone_out_layers)
     if decoder_type == "m2f":
         backbone_model = DINOv3_Adapter(backbone_model, interaction_indexes=backbone_indices_to_use)
-        backbone_model.eval()
         embed_dim = backbone_model.backbone.embed_dim
         patch_size = backbone_model.patch_size
         decoder = Mask2FormerHead(
