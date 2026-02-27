@@ -264,6 +264,51 @@ def _is_int(s: str) -> bool:
         return False
 
 
+def init_fsdp_backbone_only_from_checkpoint(
+    model: torch.nn.Module,
+    checkpoint_path: str,
+    keys_not_sharded: list[str] | None = None,
+    process_group: torch.distributed.ProcessGroup = None,
+):
+    if keys_not_sharded is None:
+        keys_not_sharded = []
+
+    logger.info(f"Loading backbone-only pretrained weights from {checkpoint_path}")
+    
+    # Load the raw state dict directly (no ["teacher"] extraction)
+    chkpt = torch.load(checkpoint_path, map_location="cpu")
+
+    from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
+
+    if process_group is None:
+        world_mesh = init_device_mesh(
+            "cuda",
+            mesh_shape=(torch.distributed.get_world_size(),),
+            mesh_dim_names=("dp",),
+        )
+    else:
+        world_mesh = DeviceMesh.from_group(process_group, "cuda")
+        
+    # Distribute the tensors across the FSDP mesh
+    chkpt_distributed = {
+        key: (
+            torch.distributed.tensor.distribute_tensor(tensor, world_mesh, src_data_rank=None)
+            if not any(key_not_sharded in key for key_not_sharded in keys_not_sharded)
+            else tensor
+        )
+        for key, tensor in chkpt.items()
+    }
+    
+    # Load into the model using strict=False to avoid crashing on unexpected/missing keys
+    missing_keys, unexpected_keys = model.load_state_dict(chkpt_distributed, strict=False)
+    
+    logger.info(f"Successfully loaded backbone weights.")
+    if missing_keys:
+        logger.info(f"Missing keys (expected if heads aren't in checkpoint): {len(missing_keys)}")
+    if unexpected_keys:
+        logger.warning(f"Unexpected keys ignored: {len(unexpected_keys)} - {unexpected_keys[:5]}...")
+
+
 # Initialize a FSDP2 model from DCP or PyTorch standard checkpoint
 def init_fsdp_model_from_checkpoint(
     model: torch.nn.Module,
@@ -305,9 +350,7 @@ def init_fsdp_model_from_checkpoint(
 
 
 # Initialize a standard non distributed PyTorch model from PyTorch standard checkpoint for evals
-def init_model_from_checkpoint_for_evals(
-    model: torch.nn.Module, pretrained_weights: str | Path, checkpoint_key: str = None
-):
+def init_model_from_checkpoint_for_evals(model: torch.nn.Module, pretrained_weights: str | Path, checkpoint_key: str = None):
     state_dict = torch.load(pretrained_weights, map_location="cpu")
     if checkpoint_key is not None and checkpoint_key in state_dict:
         logger.info(f"Take key {checkpoint_key} in provided checkpoint dict")

@@ -13,6 +13,8 @@ from torch.utils.data import Sampler
 from .datasets import ADE20K, CocoCaptions, ImageNet, ImageNet22k
 from .samplers import EpochSampler, InfiniteSampler, ShardedInfiniteSampler
 
+from datasets import load_dataset
+
 logger = logging.getLogger("dinov3")
 
 
@@ -22,6 +24,48 @@ class SamplerType(Enum):
     INFINITE = 2
     SHARDED_INFINITE = 3
     SHARDED_INFINITE_NEW = 4
+
+
+class HuggingFaceImageDataset(torch.utils.data.Dataset):
+    def __init__(
+        self, 
+        repo: str, 
+        split: str = "train", 
+        transform = None, 
+        target_transform = None, 
+        transforms = None
+    ):
+        # Load the dataset from Hugging Face
+        self.dataset = load_dataset(repo, split=split)
+        
+        self.transform = transform
+        self.target_transform = target_transform
+        self.transforms = transforms
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        # Extract the PIL.Image object directly
+        img = self.dataset[idx]["image"]
+            
+        # Ensure it's 3-channel RGB (required by DINOv3)
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        # Dummy target for SSL
+        target = 0
+
+        # Apply DINOv3 transformations
+        if self.transforms is not None:
+            img, target = self.transforms(img, target)
+        else:
+            if self.transform is not None:
+                img = self.transform(img)
+            if self.target_transform is not None:
+                target = self.target_transform(target)
+
+        return img, target
 
 
 def _make_bool_str(b: bool) -> str:
@@ -51,7 +95,7 @@ def _parse_dataset_str(dataset_str: str):
 
     for token in tokens[1:]:
         key, value = token.split("=")
-        assert key in ("root", "extra", "split")
+        assert key in ("root", "extra", "split", "repo")
         kwargs[key] = value
 
     if name == "ImageNet":
@@ -68,6 +112,8 @@ def _parse_dataset_str(dataset_str: str):
         class_ = CocoCaptions
         if "split" in kwargs:
             kwargs["split"] = CocoCaptions.Split[kwargs["split"]]
+    elif name == "HuggingFace":
+        class_ = HuggingFaceImageDataset
     else:
         raise ValueError(f'Unsupported dataset "{name}"')
 

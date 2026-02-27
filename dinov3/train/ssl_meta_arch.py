@@ -12,7 +12,7 @@ from omegaconf import OmegaConf
 from torch import Tensor, nn
 
 import dinov3.distributed as distributed
-from dinov3.checkpointer import init_fsdp_model_from_checkpoint
+from dinov3.checkpointer import init_fsdp_model_from_checkpoint, init_fsdp_backbone_only_from_checkpoint
 from dinov3.configs import get_default_config
 from dinov3.data import DataAugmentationDINO
 from dinov3.fsdp.ac_compile_parallelize import ac_compile_parallelize
@@ -86,12 +86,8 @@ class SSLMetaArch(nn.Module):
         logger.info(f"OPTIONS -- KOLEO -- distributed: {cfg.dino.koleo_loss_distributed}")
         if cfg.dino.koleo_loss_distributed:
             logger.info(f"OPTIONS -- KOLEO -- topk: {cfg.dino.koleo_topk}")
-            logger.info(
-                f"OPTIONS -- KOLEO -- distributed_loss_group_size: {cfg.dino.koleo_distributed_loss_group_size}"
-            )
-            assert cfg.dino.koleo_distributed_replicas == 0, (
-                "Option `dino.koleo_distributed_replicas` is no longer supported"
-            )
+            logger.info(f"OPTIONS -- KOLEO -- distributed_loss_group_size: {cfg.dino.koleo_distributed_loss_group_size}")
+            assert cfg.dino.koleo_distributed_replicas == 0, ("Option `dino.koleo_distributed_replicas` is no longer supported")
             self.koleo_loss = KoLeoLossDistributed(
                 topk=cfg.dino.koleo_topk,
                 loss_group_size=cfg.dino.koleo_distributed_loss_group_size,
@@ -157,9 +153,7 @@ class SSLMetaArch(nn.Module):
                 end=schedule_cfg.end,
                 warmup_iterations=iter_per_epoch * schedule_cfg.warmup_epochs,
                 total_iterations=total_iterations,
-                cosine_iterations=(
-                    iter_per_epoch * schedule_cfg.cosine_epochs if "cosine_epochs" in schedule_cfg else None
-                ),
+                cosine_iterations=(iter_per_epoch * schedule_cfg.cosine_epochs if "cosine_epochs" in schedule_cfg else None),
             )
 
         # Gram
@@ -209,9 +203,7 @@ class SSLMetaArch(nn.Module):
             self.gram_rep_update = self.cfg.gram.rep_update  # bool, if yes the gram teacher will be updated at the freq
             self.gram_update_frequency = self.cfg.gram.update_frequency  # defined by this var update_frequency
             self.gram_it_first_update = self.cfg.gram.it_first_update  # after iteration it_first_update is passed.
-            self.gram_it_load_ema_teacher = (
-                self.cfg.gram.it_load_ema_teacher
-            )  # after iteration it_load_ema the ema teacher is loaded into the gram teacher
+            self.gram_it_load_ema_teacher = self.cfg.gram.it_load_ema_teacher  # after iteration it_load_ema the ema teacher is loaded into the gram teacher
             self.gram_compute_stats = self.cfg.gram.compute_stats  # whether to compute auxiliary stats
             self.gram_params_lists = None
 
@@ -294,7 +286,19 @@ class SSLMetaArch(nn.Module):
         self.student.ibot_head.init_weights()
         self.dino_loss.init_weights()
         self.ibot_patch_loss.init_weights()
+
+        # Init backbone only from pretrained checkpoint
+        if self.cfg.student.pretrained_weights:
+            init_fsdp_backbone_only_from_checkpoint(
+                model=self.student.backbone,  # Target the backbone specifically
+                checkpoint_path=self.cfg.student.pretrained_weights,
+                keys_not_sharded=["rope_embed.periods", "qkv.bias_mask"],
+                process_group=distributed.get_process_subgroup(),
+            )
+
+        # The EMA model will now receive the initialized backbone (from above) + randomly initialized heads
         self.model_ema.load_state_dict(self.student.state_dict())
+
         if self.has_gram_teacher:
             if self.gram_ckpt is not None:
                 logger.info(f"Loading pretrained weights from {self.gram_ckpt}")
@@ -315,6 +319,7 @@ class SSLMetaArch(nn.Module):
                 raise ValueError(f"Provide a correct path to {self.gram_ckpt}")
             self.gram_teacher.requires_grad_(False)
             self.gram_teacher.eval()
+        
         if self.cfg.student.resume_from_teacher_chkpt:
             logger.info(f"Loading pretrained weights from {self.cfg.student.resume_from_teacher_chkpt}")
             init_fsdp_model_from_checkpoint(
@@ -325,6 +330,7 @@ class SSLMetaArch(nn.Module):
                 process_group=distributed.get_process_subgroup(),
             )
             self.model_ema.load_state_dict(self.student.state_dict())
+        
         if self.cfg.distillation.enabled:
             if self.cfg.distillation.checkpoint_path != "ignore":
                 logger.info(f"Loading teacher to distil from : {self.cfg.distillation.checkpoint_path}")

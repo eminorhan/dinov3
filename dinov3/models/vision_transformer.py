@@ -218,10 +218,10 @@ class DinoVisionTransformer(nn.Module):
         output = []
         for idx, (x, masks) in enumerate(zip(all_x, masks_list)):
             if self.untie_cls_and_patch_norms or self.untie_global_and_local_cls_norm:
-                # if self.untie_global_and_local_cls_norm and self.training and idx == 1:
-                #     # Assume second entry of list corresponds to local crops.
-                #     # We only ever apply this during training.
-                #     x_norm_cls_reg = self.local_cls_norm(x[:, : self.n_storage_tokens + 1])
+                if self.untie_global_and_local_cls_norm and self.training and idx == 1:
+                    # Assume second entry of list corresponds to local crops.
+                    # We only ever apply this during training.
+                    x_norm_cls_reg = self.local_cls_norm(x[:, : self.n_storage_tokens + 1])
                 if self.untie_cls_and_patch_norms:
                     x_norm_cls_reg = self.cls_norm(x[:, : self.n_storage_tokens + 1])
                 else:
@@ -473,10 +473,10 @@ class DinoVisionTransformer3D(nn.Module):
         output = []
         for idx, (x, masks) in enumerate(zip(all_x, masks_list)):
             if self.untie_cls_and_patch_norms or self.untie_global_and_local_cls_norm:
-                # if self.untie_global_and_local_cls_norm and self.training and idx == 1:
-                #     # Assume second entry of list corresponds to local crops.
-                #     # We only ever apply this during training.
-                #     x_norm_cls_reg = self.local_cls_norm(x[:, : self.n_storage_tokens + 1])
+                if self.untie_global_and_local_cls_norm and self.training and idx == 1:
+                    # Assume second entry of list corresponds to local crops.
+                    # We only ever apply this during training.
+                    x_norm_cls_reg = self.local_cls_norm(x[:, : self.n_storage_tokens + 1])
                 if self.untie_cls_and_patch_norms:
                     x_norm_cls_reg = self.cls_norm(x[:, : self.n_storage_tokens + 1])
                 else:

@@ -280,12 +280,8 @@ def build_multi_resolution_data_loader_from_cfg(
     start_iter,
     seed=65537,
 ):
-    global_crops_sizes = (
-        [cfg.crops.global_crops_size] if isinstance(cfg.crops.global_crops_size, int) else cfg.crops.global_crops_size
-    )
-    local_crops_sizes = (
-        [cfg.crops.local_crops_size] if isinstance(cfg.crops.local_crops_size, int) else cfg.crops.local_crops_size
-    )
+    global_crops_sizes = ([cfg.crops.global_crops_size] if isinstance(cfg.crops.global_crops_size, int) else cfg.crops.global_crops_size)
+    local_crops_sizes = ([cfg.crops.local_crops_size] if isinstance(cfg.crops.local_crops_size, int) else cfg.crops.local_crops_size)
     gram_teacher_crops_sizes = (
         [cfg.crops.gram_teacher_crops_size]
         if cfg.crops.gram_teacher_crops_size is None or isinstance(cfg.crops.gram_teacher_crops_size, int)
@@ -299,9 +295,7 @@ def build_multi_resolution_data_loader_from_cfg(
     assert len(global_crops_sizes) == len(local_crops_sizes) == len(gram_teacher_crops_sizes) == len(loader_ratios)
 
     loaders = []
-    for increment, (global_crops_size_i, local_crops_size_i, gram_teacher_crops_size_i) in enumerate(
-        zip(global_crops_sizes, local_crops_sizes, gram_teacher_crops_sizes)
-    ):
+    for increment, (global_crops_size_i, local_crops_size_i, gram_teacher_crops_size_i) in enumerate(zip(global_crops_sizes, local_crops_sizes, gram_teacher_crops_sizes)):
         cfg_i = copy.deepcopy(cfg)
         cfg_i.crops.global_crops_size = global_crops_size_i
         cfg_i.crops.local_crops_size = local_crops_size_i

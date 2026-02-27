@@ -19,7 +19,8 @@ core.*
 .vscode/
 
 # pretrained ckpt directory
-models/
+local_dino/
+outputs/
 
 # output and log files
 *.out
