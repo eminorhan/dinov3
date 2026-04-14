@@ -296,7 +296,7 @@ class SSLMetaArch(nn.Module):
                 process_group=distributed.get_process_subgroup(),
             )
 
-        # The EMA model will now receive the initialized backbone (from above) + randomly initialized heads
+        # EMA model will now receive the initialized backbone if student.pretrained_weights is specified (from above) + randomly initialized heads
         self.model_ema.load_state_dict(self.student.state_dict())
 
         if self.has_gram_teacher:
@@ -809,3 +809,166 @@ class SSLMetaArch(nn.Module):
             catted = catted.narrow(dim=over_dim, start=0, length=global_batch_size)
 
         return catted.chunk(subgroup_size, dim=over_dim)[distributed.get_subgroup_rank()].clone()
+
+
+class SSLMetaArch3D(SSLMetaArch):
+    def get_teacher_output(
+        self,
+        images,
+        *,
+        upperbound,
+        mask_indices_list,
+        teacher_temp,
+        n_masked_patches_tensor,
+    ):
+        n_crops, B, rgb, D, H, W = images.shape
+        images = images.flatten(0, 1)
+
+        backbone_out = self.teacher.backbone(images, is_training=True)
+        cls = backbone_out["x_norm_clstoken"]  # [n_crops * B, Dim]
+        reg = backbone_out["x_storage_tokens"]  # [n_crops * B, R, Dim]
+        ibot_patch = backbone_out["x_norm_patchtokens"]  # [n_crops * B, P, Dim]
+
+        # IBOT head only on patches that are masked for the student
+        buffer = torch.index_select(ibot_patch.flatten(0, 1), dim=0, index=mask_indices_list)
+        masked_patch_after_head = self.teacher.ibot_head(buffer)
+
+        # DINO head on CLS tokens
+        cls_after_head = self.teacher.dino_head(cls)  # [n_crops * B, K]
+
+        # Center with sinkhorn-knopp
+        cls_centered = self.dino_loss.sinkhorn_knopp_teacher(
+            cls_after_head, teacher_temp=teacher_temp
+        )  # [n_crops * B, K]
+        cls_centered = cls_centered.unflatten(0, (n_crops, B))  # [n_crops, B, K]
+        masked_patch_centered = self.ibot_patch_loss.sinkhorn_knopp_teacher(
+            masked_patch_after_head,
+            teacher_temp=teacher_temp,
+            n_masked_patches_tensor=n_masked_patches_tensor,
+        )  # [n_masked_patches, K]
+
+        return {
+            "cls_pre_head": cls.unflatten(0, [n_crops, B]),  # [n_crops, B, Dim]
+            "reg_pre_head": reg.unflatten(0, [n_crops, B]),  # [n_crops, B, R, Dim]
+            "patch_pre_head": ibot_patch.unflatten(0, [n_crops, B]),  # [n_crops, B, P, Dim]
+            "cls_after_head": cls_after_head.unflatten(0, [n_crops, B]),  # [n_crops, B, K]
+            "cls_centered": cls_centered,  # [n_crops, B, K]
+            "masked_patch_centered": masked_patch_centered,  # [n_masked_patches, K]
+        }
+
+    def get_student_output(self, *, global_crops, local_crops, upperbound, masks, mask_indices_list):
+        n_global_crops, B, rgb, D, H, W = global_crops.shape
+        n_local_crops, B, rgb, Dl, Hl, Wl = local_crops.shape
+
+        global_crops = global_crops.flatten(0, 1)
+
+        # Forward global and local crops through the student backbone jointly
+        global_out, local_out = self.student.backbone(
+            [global_crops, local_crops.flatten(0, 1)],
+            masks=[masks if not self.is_distillation_enabled else None, None],
+            is_training=True,
+        )
+        g_cls, g_reg, g_patch = (
+            global_out["x_norm_clstoken"],
+            global_out["x_storage_tokens"],
+            global_out["x_norm_patchtokens"],
+        )
+        l_cls, l_reg, l_patch = (
+            local_out["x_norm_clstoken"],
+            local_out["x_storage_tokens"],
+            local_out["x_norm_patchtokens"],
+        )
+
+        # IBOT head only on masked patches
+        masked_patches_pre_head = torch.index_select(g_patch.flatten(0, 1), dim=0, index=mask_indices_list)
+        global_masked_patch_after_head = self.student.ibot_head(masked_patches_pre_head)
+
+        # DINO head on CLS tokens (all in one pass)
+        buffer = [
+            g_cls,  # [n_global_crops * B, Dim]
+            l_cls,  # [n_local_crops * B, Dim]
+        ]
+        sizes = [x.shape[0] for x in buffer]
+        buffer = torch.cat(buffer, dim=0)  # [n_global_crops * B + n_local_crops * B, Dim]
+        buffer = self.student.dino_head(buffer)  # [n_global_crops * B + n_local_crops * B, K]
+        buffer = torch.split_with_sizes(buffer, sizes, dim=0)
+
+        global_out = {
+            "cls_pre_head": g_cls.unflatten(0, [n_global_crops, B]),  # [n_global_crops, B, Dim]
+            "reg_pre_head": g_reg.unflatten(0, [n_global_crops, B]),  # [n_global_crops, B, R, Dim]
+            "patch_pre_head": g_patch.unflatten(0, [n_global_crops, B]),  # [n_global_crops, B, P, Dim]
+            "cls_after_head": buffer[0].unflatten(0, [n_global_crops, B]),  # [n_global_crops, B, K],
+            "masked_patch_after_head": global_masked_patch_after_head,  # [n_masked_patches, K]
+            "masked_patch_pre_head": masked_patches_pre_head,  # [n_masked_patches, Dim]
+        }
+        local_out = {
+            "cls_pre_head": l_cls.unflatten(0, [n_local_crops, B]),  # [n_local_crops, B, Dim]
+            "reg_pre_head": l_reg.unflatten(0, [n_local_crops, B]),  # [n_local_crops, B, R, Dim]
+            "patch_pre_head": l_patch.unflatten(0, [n_local_crops, B]),  # [n_local_crops, B, P, Dim]
+            "cls_after_head": buffer[1].unflatten(0, [n_local_crops, B]),  # [n_local_crops, B, K],
+        }
+
+        return global_out, local_out
+
+    def get_gram_teacher_output(self, images, *, masks, teacher_global, student_global, student_global_crops_size):
+        # Get student patch features
+        student_patches = student_global["patch_pre_head"].flatten(0, 1)  # [n_crops * B, P, Dim]
+
+        # Get gram targets
+        if self.gram_ema_teacher:
+            teacher_patches = teacher_global["patch_pre_head"].flatten(0, 1)  # [n_crops * B, P, Dim]
+        else:
+            if not self.gram_teacher_initialized:
+                raise ValueError("Gram teacher has not been initialized. Load a checkpoint or from the EMA teacher.")
+            n_crops, B, rgb, D, H, W = images.shape
+            images = images.flatten(0, 1)  # [n_crops * B, rgb, D, H, W]
+
+            with torch.no_grad():
+                backbone_out = self.gram_teacher.backbone(images, is_training=True)
+            teacher_patches = backbone_out["x_norm_patchtokens"]  # [n_crops * B, P_T, Dim]
+
+            # Downsample Gram teacher features if needed
+            if teacher_patches.shape[1] != student_patches.shape[1]:
+                P_T = teacher_patches.shape[1]
+                N = H // self.cfg.student.patch_size
+                N_student = student_global_crops_size // self.cfg.student.patch_size
+                
+                patches_dhw = teacher_patches.transpose(-2, -1).unflatten(-1, (D, N, N))  # [n_crops * B, Dim, D, N, N]
+                
+                patches_dhw = torch.nn.functional.interpolate(
+                    patches_dhw,
+                    size=(D, N_student, N_student),
+                    mode='trilinear' if self.gram_global_teacher_resize_method == 'bicubic' else 'nearest',
+                    align_corners=False if self.gram_global_teacher_resize_method == 'bicubic' else None,
+                    antialias=False,
+                )
+                teacher_patches = patches_dhw.flatten(-3, -1).transpose(-2, -1)
+                
+                assert teacher_patches.shape == student_patches.shape
+
+        # Select the patches to be considered in the loss
+        orig_student_patches = student_patches
+        orig_teacher_patches = teacher_patches
+        if self.gram_tokens_used == "masked":
+            student_patches = student_patches[masks]
+            teacher_patches = teacher_patches[masks]
+        elif self.gram_tokens_used == "unmasked":
+            student_patches = student_patches[~masks]
+            teacher_patches = teacher_patches[~masks]
+
+        return {
+            "student_patches": student_patches,
+            "teacher_patches": teacher_patches,
+            "orig_student_patches": orig_student_patches,
+            "orig_teacher_patches": orig_teacher_patches,
+        }
+
+    def build_data_augmentation_dino(self, cfg):
+        from dinov3.data.augmentations_3d import DataAugmentationDINO3D
+        return DataAugmentationDINO3D(
+            global_crops_size=cfg.crops.global_crops_size,
+            local_crops_size=cfg.crops.local_crops_size,
+            global_crops_scale=cfg.crops.global_crops_scale,
+            local_crops_scale=cfg.crops.local_crops_scale,
+            local_crops_number=cfg.crops.local_crops_number,
+        )

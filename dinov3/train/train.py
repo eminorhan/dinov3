@@ -38,7 +38,7 @@ from dinov3.data import (
 from dinov3.logging import MetricLogger, setup_logging
 from dinov3.train.cosine_lr_scheduler import CosineScheduler, linear_warmup_cosine_decay
 from dinov3.train.multidist_meta_arch import MultiDistillationMetaArch
-from dinov3.train.ssl_meta_arch import SSLMetaArch
+from dinov3.train.ssl_meta_arch import SSLMetaArch, SSLMetaArch3D
 
 assert torch.__version__ >= (2, 1)
 torch.backends.cuda.matmul.allow_tf32 = True  # pytorch 1.12 sets this to false by default
@@ -221,8 +221,23 @@ def build_data_loader_from_cfg(cfg, model, start_iter):
     # Collate function
     img_size = cfg.crops.global_crops_size
     patch_size = cfg.student.patch_size
-    n_tokens = (img_size // patch_size) ** 2
-    mask_generator = MaskingGenerator(input_size=(img_size // patch_size, img_size // patch_size), max_num_patches=0.5 * img_size // patch_size * img_size // patch_size)
+    is_3d = getattr(cfg.MODEL, "META_ARCHITECTURE", "") == "SSLMetaArch3D"
+
+    if is_3d:
+        from dinov3.data.augmentations_3d import MaskingGenerator3D
+        temporal_size = getattr(cfg.crops, "temporal_crops_size", 8)
+        temporal_patch_size = getattr(cfg.student, "temporal_patch_size", 2)
+        frames = temporal_size // temporal_patch_size
+        h = img_size // patch_size
+        w = img_size // patch_size
+        n_tokens = frames * h * w
+        mask_generator = MaskingGenerator3D(
+            input_size=(frames, h, w), 
+            max_num_patches=int(0.5 * n_tokens)
+        )
+    else:
+        n_tokens = (img_size // patch_size) ** 2
+        mask_generator = MaskingGenerator(input_size=(img_size // patch_size, img_size // patch_size), max_num_patches=int(0.5 * n_tokens))
 
     if cfg.multidistillation.enabled:
         assert cfg.multidistillation.global_batch_size % distributed.get_subgroup_size() == 0
@@ -531,7 +546,7 @@ def main(argv=None):
         logger.info(cfg)
         setup_logging(output=os.path.join(os.path.abspath(args.output_dir), "nan_logs"), name="nan_logger")
 
-    meta_arch = {"SSLMetaArch": SSLMetaArch, "MultiDistillationMetaArch": MultiDistillationMetaArch}.get(cfg.MODEL.META_ARCHITECTURE, None)
+    meta_arch = {"SSLMetaArch": SSLMetaArch, "MultiDistillationMetaArch": MultiDistillationMetaArch, "SSLMetaArch3D": SSLMetaArch3D}.get(cfg.MODEL.META_ARCHITECTURE, None)
 
     if meta_arch is None:
         raise ValueError(f"Unknown MODEL.META_ARCHITECTURE {cfg.MODEL.META_ARCHITECTURE}")

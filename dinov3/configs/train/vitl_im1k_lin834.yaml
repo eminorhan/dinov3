@@ -39,7 +39,7 @@ ibot:
   head_nlayers: 3
   head_hidden_dim: 2048
 train:
-  batch_size_per_gpu: 32
+  batch_size_per_gpu: 16
   dataset_path: ImageNet:split=TRAIN
   output_dir: /checkpoint/dino/qas/rope/vitl16_im1k
   saveckp_freq: 20
@@ -60,17 +60,17 @@ train:
 student:
   arch: vit_large
   patch_size: 16
-  drop_path_rate: 0.3
+  drop_path_rate: 0.0
   layerscale: 1.0e-05
   patch_drop: 0.0
-  pretrained_weights: '/lustre/blizzard/stf218/scratch/emin/torch_hub/checkpoints/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth'
+  pretrained_weights: '' # '/lustre/blizzard/stf218/scratch/emin/torch_hub/checkpoints/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth'
   ffn_layer: mlp
   ffn_ratio: 4.0
   resume_from_teacher_chkpt: ''
   qkv_bias: true
   proj_bias: true
   ffn_bias: true
-  norm_layer: layernorm
+  norm_layer: layernormbf16
   n_storage_tokens: 4
   mask_k_bias: true
   in_chans: 3
@@ -82,7 +82,7 @@ student:
   pos_embed_rope_shift_coords: null
   pos_embed_rope_jitter_coords: null
   pos_embed_rope_rescale_coords: null
-  pos_embed_rope_dtype: bf16
+  pos_embed_rope_dtype: fp32
   fp8_enabled: False  # Convert Linear layers to operate in fp8 precision
   fp8_filter: "blocks"  # Regex that must appear in module path; empty means everything
 teacher:
@@ -90,7 +90,7 @@ teacher:
   final_momentum_teacher: 1
   warmup_teacher_temp: 0.04
   teacher_temp: 0.07
-  warmup_teacher_temp_epochs: 30
+  warmup_teacher_temp_epochs: 3
   in_chans: 3
 distillation:
   enabled: false
@@ -102,15 +102,15 @@ hrft:
   enabled: false
   checkpoint_path: ''
 optim:
-  epochs: 100
+  epochs: 20
   optimizer: adamw
   weight_decay: 0.04
   weight_decay_end: 0.4
-  lr: 0.001
-  warmup_epochs: 10
+  lr: 0.0001
+  warmup_epochs: 1
   min_lr: 1.0e-06
-  clip_grad: 3.0
-  freeze_last_layer_epochs: 1
+  clip_grad: 1.0
+  freeze_last_layer_epochs: 0
   scaling_rule: sqrt_wrt_1024
   patch_embed_lr_mult: 0.2
   dino_head_wd_multiplier: 1.0
