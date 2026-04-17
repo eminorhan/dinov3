@@ -83,7 +83,7 @@ def _make_dinov3_vit(
     proj_bias: bool = True,
     n_storage_tokens: int = 0,
     mask_k_bias: bool = False,
-    use_fa3: bool = False,
+    use_fa4: bool = False,
     pretrained: bool = True,
     version: Optional[str] = None,
     weights: Union[Weights, str] = Weights.LVD1689M,
@@ -118,7 +118,7 @@ def _make_dinov3_vit(
         proj_bias=proj_bias,
         n_storage_tokens=n_storage_tokens,
         mask_k_bias=mask_k_bias,
-        use_fa3=use_fa3
+        use_fa4=use_fa4
     )
     vit_kwargs.update(**kwargs)
     model = DinoVisionTransformer(**vit_kwargs)
@@ -172,7 +172,7 @@ def _make_dinov3_vit_3D(
     proj_bias: bool = True,
     n_storage_tokens: int = 0,
     mask_k_bias: bool = False,
-    use_fa3: bool = False,
+    use_fa4: bool = False,
     pretrained: bool = True,
     version: Optional[str] = None,
     weights: Union[Weights, str] = Weights.LVD1689M,
@@ -207,7 +207,7 @@ def _make_dinov3_vit_3D(
         proj_bias=proj_bias,
         n_storage_tokens=n_storage_tokens,
         mask_k_bias=mask_k_bias,
-        use_fa3=use_fa3
+        use_fa4=use_fa4
     )
     vit_kwargs.update(**kwargs)
     model = DinoVisionTransformer3D(**vit_kwargs)

@@ -84,7 +84,7 @@ class DinoVisionTransformer(nn.Module):
         proj_bias: bool = True,
         n_storage_tokens: int = 0,
         mask_k_bias: bool = False,
-        use_fa3: bool= False,
+        use_fa4: bool= False,
         untie_cls_and_patch_norms: bool = False,
         untie_global_and_local_cls_norm: bool = False,
         device: Any | None = None,
@@ -145,7 +145,7 @@ class DinoVisionTransformer(nn.Module):
                 ffn_layer=ffn_layer_cls,
                 init_values=layerscale_init,
                 mask_k_bias=mask_k_bias,
-                use_fa3=use_fa3,
+                use_fa4=use_fa4,
                 device=device,
             )
             for i in range(depth)
@@ -336,7 +336,7 @@ class DinoVisionTransformer3D(nn.Module):
         proj_bias: bool = True,
         n_storage_tokens: int = 0,
         mask_k_bias: bool = False,
-        use_fa3: bool = False,
+        use_fa4: bool = False,
         untie_cls_and_patch_norms: bool = False,
         untie_global_and_local_cls_norm: bool = False,
         device: Any | None = None,
@@ -397,7 +397,7 @@ class DinoVisionTransformer3D(nn.Module):
                 ffn_layer=ffn_layer_cls,
                 init_values=layerscale_init,
                 mask_k_bias=mask_k_bias,
-                use_fa3=use_fa3,
+                use_fa4=use_fa4,
                 device=device,
             )
             for i in range(depth)

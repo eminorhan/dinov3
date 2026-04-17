@@ -1,12 +1,10 @@
-## Installing FlashAttention-3
+## Installing FlashAttention-4
 
-The model implementations in this fork will use [FlashAttention-3](https://github.com/Dao-AILab/flash-attention?tab=readme-ov-file#flashattention-3-beta-release) (FA-3) for self-attention computations if FA-3 is installed, otherwise it will fall back on `F.scaled_dot_product_attention` (the original implementation always uses `F.scaled_dot_product_attention`). FA-3 yields significant improvements in speed and memory usage over `F.scaled_dot_product_attention` on Hopper GPUs, so we encourage the users to install FA-3 if they're running the code here on Hopper GPUs. To install FA-3:
+The model implementations in this fork will use [FlashAttention-4](https://github.com/dao-ailab/flash-attention#flashattention-4-cutedsl) (FA-4) for self-attention computations if FA-4 is installed, otherwise it will fall back on `F.scaled_dot_product_attention` (the original implementation always uses `F.scaled_dot_product_attention`). FA-4 yields significant improvements in speed and memory usage over `F.scaled_dot_product_attention` on Hopper and Blackwell GPUs, so we encourage the users to install FA-4 if they're running the code here on Hopper or Blackwell GPUs. To install FA-4 (with the `cu13` extra for optimal performance):
 ```bash
-git clone https://github.com/Dao-AILab/flash-attention.git
-cd flash-attention/hopper
-python setup.py install
+pip install --pre "flash-attn-4[cu13]"
 ```
-See [here](https://github.com/Dao-AILab/flash-attention?tab=readme-ov-file#flashattention-3-beta-release) for further details.
+Please see [here](https://github.com/dao-ailab/flash-attention#flashattention-4-cutedsl) for further details.
 
 ##
 

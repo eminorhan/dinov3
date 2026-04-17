@@ -15,13 +15,13 @@ from torch import Tensor, nn
 logger = logging.getLogger("dinov3")
 
 try:
-    # Try to import the Hopper-specific FlashAttention-3
-    import flash_attn_interface
-    HAS_FA3 = True
+    # Try to import the Hopper-specific FlashAttention-4
+    from flash_attn.cute import flash_attn_func
+    HAS_FA4 = True
 except ImportError:
     # Fallback if library is missing
-    flash_attn_interface = None
-    HAS_FA3 = False
+    flash_attn_func = None
+    HAS_FA4 = False
 
 # RoPE-related functions:
 def rope_rotate_half(x: Tensor) -> Tensor:
@@ -61,15 +61,15 @@ class SelfAttention(nn.Module):
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
         mask_k_bias: bool = False,
-        use_fa3: bool = False,
+        use_fa4: bool = False,
         device=None,
     ) -> None:
         super().__init__()
 
-        if use_fa3 and not HAS_FA3:
-            raise ImportError("use_fa3=True was requested, but 'flash_attn_interface' could not be imported. Please install FlashAttention-3 or set use_fa3=False.")
+        if use_fa4 and not HAS_FA4:
+            raise ImportError("use_fa4=True was requested, but 'flash_attn_func' could not be imported. Please install FlashAttention-4 or set use_fa4=False.")
         
-        self.use_fa3 = use_fa3
+        self.use_fa4 = use_fa4
 
         self.num_heads = num_heads
         head_dim = dim // num_heads
@@ -133,12 +133,12 @@ class SelfAttention(nn.Module):
         if rope is not None:
             q, k = self.apply_rope(q, k, rope)
 
-        if self.use_fa3:
-            # use FlashAttention-3 if available
+        if self.use_fa4:
+            # use FlashAttention-4
             q, k = [t.transpose(1, 2) for t in [q, k]]
-            x = flash_attn_interface.flash_attn_func(q, k, v, causal=False)
+            x, _ = flash_attn_func(q, k, v, causal=False)
         else:
-            # fall back on FlashAttention-2 if not
+            # fall back on F.sdpa()
             v = v.transpose(1, 2)
             x = torch.nn.functional.scaled_dot_product_attention(q, k, v)
             x = x.transpose(1, 2)
