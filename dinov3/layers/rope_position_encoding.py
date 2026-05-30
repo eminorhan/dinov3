@@ -268,3 +268,159 @@ class RopePositionEmbedding3D(nn.Module):
             periods = periods / base
             periods = periods * self.max_period
         self.periods.data = periods
+
+
+class RopePositionEmbedding3DSuperposition(nn.Module):
+    def __init__(
+        self,
+        embed_dim: int,
+        *,
+        num_heads: int,
+        base: float | None = 100.0,
+        depth_base: float | None = 10000.0,
+        min_period: float | None = None,
+        max_period: float | None = None,
+        normalize_coords: Literal["min", "max", "separate"] = "separate",
+        shift_coords: float | None = None,
+        jitter_coords: float | None = None,
+        rescale_coords: float | None = None,
+        dtype: torch.dtype | None = None,
+        device: torch.device | None = None,
+    ):
+        """
+        Initializes the 3D RoPE module using Superposition (Additive Angles).
+        Preserves the exact 2D channel splitting layout to protect pretrained weights.
+        """
+        super().__init__()
+        # Ensure the dimension check perfectly matches the original 2D implementation
+        assert embed_dim % (4 * num_heads) == 0
+        both_periods = min_period is not None and max_period is not None
+        if (base is None and not both_periods) or (base is not None and both_periods):
+            raise ValueError("Either `base` or `min_period`+`max_period` must be provided.")
+
+        D_head = embed_dim // num_heads
+        self.base = base
+        self.depth_base = depth_base if depth_base is not None else base
+        self.min_period = min_period
+        self.max_period = max_period
+        self.D_head = D_head
+        self.normalize_coords = normalize_coords
+        self.shift_coords = shift_coords
+        self.jitter_coords = jitter_coords
+        self.rescale_coords = rescale_coords
+        self.dtype = dtype
+
+        # Retain the exact 2D buffer footprint (D_head // 4)
+        self.register_buffer("periods", torch.empty(D_head // 4, device=device, dtype=dtype), persistent=True)
+        self.register_buffer("depth_periods", torch.empty(D_head // 4, device=device, dtype=dtype), persistent=True)
+        
+        # Zero-initialized learnable parameter to safely gate the 3D injection at initialization
+        self.depth_scale = nn.Parameter(torch.zeros(1, device=device, dtype=dtype))
+        
+        self._init_weights()
+
+    def forward(self, *, D: int, H: int, W: int) -> tuple[Tensor, Tensor]:
+        """
+        Generates the sin and cos tensors for 3D RoPE via Superposition.
+
+        Args:
+            D (int): The depth of the input volume.
+            H (int): The height of the input volume.
+            W (int): The width of the input volume.
+
+        Returns:
+            A tuple of (sin, cos) tensors, each of shape [D*H*W, embed_dim // num_heads].
+        """
+        device = self.periods.device
+        dtype = self.dtype
+        dd = {"device": device, "dtype": dtype}
+
+        # Prepare coords in range [0, 1] before shifting to [-1, +1]
+        if self.normalize_coords == "max":
+            max_DHW = max(D, H, W)
+            coords_d = torch.arange(0.5, D, **dd) / max_DHW
+            coords_h = torch.arange(0.5, H, **dd) / max_DHW
+            coords_w = torch.arange(0.5, W, **dd) / max_DHW
+        elif self.normalize_coords == "min":
+            min_DHW = min(D, H, W)
+            coords_d = torch.arange(0.5, D, **dd) / min_DHW
+            coords_h = torch.arange(0.5, H, **dd) / min_DHW
+            coords_w = torch.arange(0.5, W, **dd) / min_DHW
+        elif self.normalize_coords == "separate":
+            coords_d = torch.arange(0.5, D, **dd) / D
+            coords_h = torch.arange(0.5, H, **dd) / H
+            coords_w = torch.arange(0.5, W, **dd) / W
+        else:
+            raise ValueError(f"Unknown normalize_coords: {self.normalize_coords}")
+
+        # Create 3D meshgrids for each axis independently
+        grid_d, grid_h, grid_w = torch.meshgrid(coords_d, coords_h, coords_w, indexing="ij")
+        
+        # Separate spatial and depth paths to preserve the original 2D math mapping
+        coords_spatial = torch.stack([grid_h, grid_w], dim=-1).flatten(0, 2)  # [DHW, 2]
+        coords_spatial = 2.0 * coords_spatial - 1.0
+        
+        coords_depth = grid_d.flatten(0, 2)  # [DHW]
+        coords_depth = 2.0 * coords_depth - 1.0
+
+        # --- Optional coordinate augmentations (during training) ---
+        if self.training and self.shift_coords is not None:
+            shift_hw = torch.empty(2, **dd).uniform_(-self.shift_coords, self.shift_coords)
+            coords_spatial += shift_hw[None, :]
+            
+            shift_d = torch.empty(1, **dd).uniform_(-self.shift_coords, self.shift_coords)
+            coords_depth += shift_d[None]
+
+        if self.training and self.jitter_coords is not None:
+            jitter_max = np.log(self.jitter_coords)
+            
+            jitter_hw = torch.empty(2, **dd).uniform_(-jitter_max, jitter_max).exp()
+            coords_spatial *= jitter_hw[None, :]
+            
+            jitter_d = torch.empty(1, **dd).uniform_(-jitter_max, jitter_max).exp()
+            coords_depth *= jitter_d[None]
+
+        if self.training and self.rescale_coords is not None:
+            rescale_max = np.log(self.rescale_coords)
+            rescale = torch.empty(1, **dd).uniform_(-rescale_max, rescale_max).exp()
+            coords_spatial *= rescale
+            coords_depth *= rescale
+
+        # Compute baseline 2D spatial angles matching the original layout: [DHW, 2, D_head//4]
+        angles_spatial = 2 * math.pi * coords_spatial[:, :, None] / self.periods[None, None, :]
+        angles_spatial = angles_spatial.flatten(1, 2)  # [DHW, D_head//2]
+        
+        # Compute the depth angles: [DHW, D_head//4]
+        angles_depth = 2 * math.pi * coords_depth[:, None] / self.depth_periods[None, :]
+        
+        # Duplicate the depth angles so they overlay both the H and W channels evenly: [DHW, D_head//2]
+        angles_depth_expanded = angles_depth.repeat(1, 2)
+        
+        # Superposition calculation: Add gated depth information to spatial positions
+        angles = angles_spatial + self.depth_scale * angles_depth_expanded  # [DHW, D_head//2]
+        
+        # Tile identical to the 2D version to match final head dimensions: [DHW, D_head]
+        angles = angles.tile(2)
+        
+        cos = torch.cos(angles)
+        sin = torch.sin(angles)
+
+        return (sin, cos)
+
+    def _init_weights(self):
+        device = self.periods.device
+        dtype = self.dtype
+        if self.base is not None:
+            # Replicate the exact 2D frequency distribution calculation
+            periods = self.base ** (2 * torch.arange(self.D_head // 4, device=device, dtype=dtype) / (self.D_head // 2))
+            depth_periods = self.depth_base ** (2 * torch.arange(self.D_head // 4, device=device, dtype=dtype) / (self.D_head // 2))
+        else:
+            base = self.max_period / self.min_period
+            exponents = torch.linspace(0, 1, self.D_head // 4, device=device, dtype=dtype)
+            periods = base**exponents
+            periods = periods / base
+            periods = periods * self.max_period
+            depth_periods = periods.clone()
+            
+        self.periods.data = periods
+        self.depth_periods.data = depth_periods

@@ -11,7 +11,7 @@ import torch
 import torch.nn.init
 from torch import Tensor, nn
 
-from dinov3.layers import LayerScale, Mlp, PatchEmbed, PatchEmbed3D, RMSNorm, RopePositionEmbedding, RopePositionEmbedding3D, SelfAttentionBlock, SwiGLUFFN
+from dinov3.layers import LayerScale, Mlp, PatchEmbed, PatchEmbed3D, RMSNorm, RopePositionEmbedding, RopePositionEmbedding3D, RopePositionEmbedding3DSuperposition, SelfAttentionBlock, SwiGLUFFN
 from dinov3.utils import named_apply
 
 logger = logging.getLogger("dinov3")
@@ -315,6 +315,7 @@ class DinoVisionTransformer3D(nn.Module):
         img_size: int = 224,
         patch_size: int = 16,
         in_chans: int = 1,  # NOTE: this is different from the 2d case above
+        pos_embed_rope_type: Literal["vanilla", "superposition"] = "vanilla",
         pos_embed_rope_base: float = 100.0,
         pos_embed_rope_min_period: float | None = None,
         pos_embed_rope_max_period: float | None = None,
@@ -367,19 +368,35 @@ class DinoVisionTransformer3D(nn.Module):
         if self.n_storage_tokens > 0:
             self.storage_tokens = nn.Parameter(torch.empty(1, n_storage_tokens, embed_dim, device=device))
         
-        self.rope_embed = RopePositionEmbedding3D(
-            embed_dim=embed_dim,
-            num_heads=num_heads,
-            base=pos_embed_rope_base,
-            min_period=pos_embed_rope_min_period,
-            max_period=pos_embed_rope_max_period,
-            normalize_coords=pos_embed_rope_normalize_coords,
-            shift_coords=pos_embed_rope_shift_coords,
-            jitter_coords=pos_embed_rope_jitter_coords,
-            rescale_coords=pos_embed_rope_rescale_coords,
-            dtype=dtype_dict[pos_embed_rope_dtype],
-            device=device,
-        )
+        if pos_embed_rope_type == "vanilla":
+            self.rope_embed = RopePositionEmbedding3D(
+                embed_dim=embed_dim,
+                num_heads=num_heads,
+                base=pos_embed_rope_base,
+                min_period=pos_embed_rope_min_period,
+                max_period=pos_embed_rope_max_period,
+                normalize_coords=pos_embed_rope_normalize_coords,
+                shift_coords=pos_embed_rope_shift_coords,
+                jitter_coords=pos_embed_rope_jitter_coords,
+                rescale_coords=pos_embed_rope_rescale_coords,
+                dtype=dtype_dict[pos_embed_rope_dtype],
+                device=device,
+            )
+        elif pos_embed_rope_type == "superposition":
+            self.rope_embed = RopePositionEmbedding3DSuperposition(
+                embed_dim=embed_dim,
+                num_heads=num_heads,
+                base=pos_embed_rope_base,
+                depth_base=100.0*pos_embed_rope_base,  # base freq for z
+                min_period=pos_embed_rope_min_period,
+                max_period=pos_embed_rope_max_period,
+                normalize_coords=pos_embed_rope_normalize_coords,
+                shift_coords=pos_embed_rope_shift_coords,
+                jitter_coords=pos_embed_rope_jitter_coords,
+                rescale_coords=pos_embed_rope_rescale_coords,
+                dtype=dtype_dict[pos_embed_rope_dtype],
+                device=device,
+            )
 
         ffn_layer_cls = ffn_layer_dict[ffn_layer]
         ffn_ratio_sequence = [ffn_ratio] * depth
