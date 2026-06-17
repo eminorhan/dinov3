@@ -3,7 +3,6 @@
 # This software may be used and distributed in accordance with
 # the terms of the DINOv3 License Agreement.
 
-from enum import Enum
 from functools import partial
 
 import torch
@@ -14,38 +13,37 @@ from dinov3.eval.segmentation.models.heads.mask2former_head import Mask2FormerHe
 from dinov3.eval.utils import ModelWithIntermediateLayers
 from dinov3.layers import PatchEmbed
 
-class BackboneLayersSet(Enum):
-    """
-    Set of intermediate layers to take from the backbone.
-    """
 
-    LAST = "LAST"  # extracting only the last layer
-    FOUR_LAST = "FOUR_LAST"  # extracting the four last layers
-    FOUR_EVEN_INTERVALS = "FOUR_EVEN_INTERVALS"  # extracting outputs every 1/4 of the total number of blocks
-
-def _get_backbone_out_indices(model: torch.nn.Module, backbone_out_layers: BackboneLayersSet = BackboneLayersSet.FOUR_EVEN_INTERVALS):
+def _get_backbone_out_indices(model: torch.nn.Module, backbone_out_layers: str = "four_even_intervals"):
     """
     Get indices for output layers of the ViT backbone. For now there are 3 options available:
-    BackboneLayersSet.LAST : only extract the last layer, used in segmentation tasks with a bn head.
-    BackboneLayersSet.FOUR_EVEN_INTERVALS : extract outputs every 1/4 of the total number of blocks
-    Reference outputs in 'FOUR_EVEN_INTERVALS' mode :
+
+    "last" : only extract the last layer, used in segmentation tasks with a bn head.
+    "four_last" : extract the four last layers
+    "four_even_intervals" : extract outputs every 1/4 of the total number of blocks
+
     ViT/S (12 blocks): [2, 5, 8, 11]
     ViT/B (12 blocks): [2, 5, 8, 11]
     ViT/L (24 blocks): [5, 11, 17, 23] (classic), [4, 11, 17, 23] (used in the paper)
     ViT/g (40 blocks): [9, 19, 29, 39]
     """
     n_blocks = getattr(model, "n_blocks", 1)
-    if backbone_out_layers == BackboneLayersSet.LAST:
+    if backbone_out_layers == "last":
         out_indices = [n_blocks - 1]
-    elif backbone_out_layers == BackboneLayersSet.FOUR_LAST:
+    elif backbone_out_layers == "four_last":
         out_indices = [i for i in range(n_blocks - 4, n_blocks)]
-    elif backbone_out_layers == BackboneLayersSet.FOUR_EVEN_INTERVALS:
+    elif backbone_out_layers == "four_even_intervals":
         # Take indices that were used in the paper (for ViT/L only)
         if n_blocks == 24:
             out_indices = [4, 11, 17, 23]
         else:
             out_indices = [i * (n_blocks // 4) - 1 for i in range(1, 5)]
+    else:
+        # Failsafe: Catch typos or invalid string arguments
+        raise ValueError(f"Unsupported backbone_out_layers value: '{backbone_out_layers}'. Valid options are: 'last', 'four_last', 'four_even_intervals'.")
+
     assert all([out_index < n_blocks for out_index in out_indices])
+    
     return out_indices
 
 
@@ -68,7 +66,7 @@ class FeatureDecoder(torch.nn.Module):
 
 def build_segmentation_decoder(
     backbone_model,
-    backbone_out_layers=BackboneLayersSet.FOUR_EVEN_INTERVALS,
+    backbone_out_layers: str = "four_even_intervals",
     decoder_type="linear",
     hidden_dim=2048,
     num_classes=150,
@@ -99,7 +97,7 @@ def build_segmentation_decoder(
         # Important: we freeze the backbone
         embed_dim = backbone_model.feature_model.embed_dim
         if isinstance(embed_dim, int):
-            if backbone_out_layers in [BackboneLayersSet.FOUR_LAST, BackboneLayersSet.FOUR_EVEN_INTERVALS]:
+            if backbone_out_layers in ["four_last", "four_even_intervals"]:
                 embed_dim = [embed_dim] * 4
             else:
                 embed_dim = [embed_dim]

@@ -387,7 +387,7 @@ class DinoVisionTransformer3D(nn.Module):
                 embed_dim=embed_dim,
                 num_heads=num_heads,
                 base=pos_embed_rope_base,
-                depth_base=100.0*pos_embed_rope_base,  # base freq for z
+                depth_base=10.0*pos_embed_rope_base,  # base freq for z
                 min_period=pos_embed_rope_min_period,
                 max_period=pos_embed_rope_max_period,
                 normalize_coords=pos_embed_rope_normalize_coords,

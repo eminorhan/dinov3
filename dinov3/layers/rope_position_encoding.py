@@ -232,6 +232,7 @@ class RopePositionEmbedding3D(nn.Module):
             rescale_max = np.log(self.rescale_coords)
             rescale = torch.empty(1, **dd).uniform_(-rescale_max, rescale_max).exp()
             coords *= rescale
+            # print(f"Rescale_hw: {rescale}")
 
         # Prepare angles and sin/cos
         # coords is [DHW, 3], periods is [D_rope//6]
