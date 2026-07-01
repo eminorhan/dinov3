@@ -68,7 +68,7 @@ train:
   output_dir: .
   saveckp_freq: 20
   seed: 0
-  num_workers: 10
+  num_workers: 8
   OFFICIAL_EPOCH_LENGTH: 1250
   monitor_gradient_norm: false
   chunk_schedule: []

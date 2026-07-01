@@ -1,7 +1,3 @@
-# tested on RSC: /checkpoint/dino/qas/rope/vitl16_im1k/
-# gives 82.2 im1k-knn, 83.3 im1k-linear
-# runs with a total batch size of 2048 (64/gpu, 4 nodes here)
-# runs at 0.57s/iter
 MODEL:
   META_ARCHITECTURE: SSLMetaArch
   DEVICE: cuda
@@ -40,12 +36,12 @@ ibot:
   head_hidden_dim: 2048
 train:
   batch_size_per_gpu: 16
-  dataset_path: ImageNet:split=TRAIN
-  output_dir: /checkpoint/dino/qas/rope/vitl16_im1k
+  dataset_path: HuggingFace:repo=eminorhan/openorganelle-2d:split=train
+  output_dir: ./outputs/oo_2d_l_lvd
   saveckp_freq: 20
   seed: 0
   num_workers: 10
-  OFFICIAL_EPOCH_LENGTH: 1250
+  OFFICIAL_EPOCH_LENGTH: 7000
   monitor_gradient_norm: false
   chunk_schedule: []
   cache_dataset: true
@@ -63,7 +59,7 @@ student:
   drop_path_rate: 0.0
   layerscale: 1.0e-05
   patch_drop: 0.0
-  pretrained_weights: '' # '/lustre/blizzard/stf218/scratch/emin/torch_hub/checkpoints/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth'
+  pretrained_weights: '/lustre/blizzard/stf218/scratch/emin/torch_hub/checkpoints/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth'
   ffn_layer: mlp
   ffn_ratio: 4.0
   resume_from_teacher_chkpt: ''
@@ -85,6 +81,7 @@ student:
   pos_embed_rope_dtype: fp32
   fp8_enabled: False  # Convert Linear layers to operate in fp8 precision
   fp8_filter: "blocks"  # Regex that must appear in module path; empty means everything
+  use_fa4: False
 teacher:
   momentum_teacher: 0.992
   final_momentum_teacher: 1
@@ -102,7 +99,7 @@ hrft:
   enabled: false
   checkpoint_path: ''
 optim:
-  epochs: 20
+  epochs: 10
   optimizer: adamw
   weight_decay: 0.04
   weight_decay_end: 0.4
@@ -127,17 +124,17 @@ crops:
   local_crops_scale:
   - 0.05
   - 0.32
-  global_crops_size: 480
-  local_crops_size: 192
+  global_crops_size: 512
+  local_crops_size: 224
   localcrops_subset_of_globalcrops: false
   share_color_jitter: false
   horizontal_flips: true
 evaluation:
-  eval_period_iterations: 12500
+  eval_period_iterations: 7000
   low_freq_every: 5
   config_files:
     high_freq: benchmark_high_frequency.yaml
     low_freq: benchmark_low_frequency.yaml
 checkpointing:
-  period: 3750
+  period: 7000
   max_to_keep: 3

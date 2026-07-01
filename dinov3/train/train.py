@@ -12,6 +12,7 @@ import os
 import sys
 from functools import partial
 from pathlib import Path
+from omegaconf import OmegaConf
 
 import torch
 import torch.distributed
@@ -54,7 +55,6 @@ def get_args_parser(add_help: bool = True):
     parser.add_argument("--eval-only", action="store_true", help="perform evaluation only")
     parser.add_argument("--eval", type=str, default="", help="Eval type to perform")
     parser.add_argument("--eval_pretrained_weights", type=str, default="", help="Path to pretrained weights")
-    parser.add_argument("--output-dir", default="./local_dino", type=str, help="Path to save logs and checkpoints.")
     parser.add_argument("--seed", default=0, type=int, help="RNG seed")
     parser.add_argument("--benchmark-codebase", action="store_true", help="test the codebase for a few iters")
     parser.add_argument("--test-ibot", action="store_true", help="test ibot")
@@ -532,7 +532,13 @@ def main(argv=None):
         args = get_args_parser().parse_args()
     else:
         args = get_args_parser().parse_args(argv[1:])
-        args.output_dir = sys.argv[1]
+
+    # --- HACKY: Peek into the config file to establish the output_dir ---
+    # We load the raw config early to extract the output directory 
+    # so setup_job and setup_multidistillation can use it.
+    raw_cfg = OmegaConf.load(args.config_file)
+    args.output_dir = raw_cfg.train.output_dir
+    # ------------------------------------------------------------------
 
     if args.multi_distillation:
         print("performing multidistillation run")

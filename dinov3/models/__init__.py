@@ -54,6 +54,7 @@ def build_model(args, only_teacher=False, img_size=224, device=None):
             untie_cls_and_patch_norms=args.untie_cls_and_patch_norms,
             untie_global_and_local_cls_norm=args.untie_global_and_local_cls_norm,
             device=device,
+            use_fa4=args.use_fa4
         )
         teacher = vits.__dict__[args.arch](**vit_kwargs)
         teacher = init_fp8(teacher, args)
