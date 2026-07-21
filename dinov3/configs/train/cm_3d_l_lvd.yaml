@@ -1,5 +1,5 @@
 MODEL:
-  META_ARCHITECTURE: SSLMetaArch
+  META_ARCHITECTURE: SSLMetaArch3D
   DEVICE: cuda
   WEIGHTS: ''
   DTYPE: float32
@@ -36,12 +36,12 @@ ibot:
   head_hidden_dim: 2048
 train:
   batch_size_per_gpu: 16
-  dataset_path: HuggingFace:repo=eminorhan/openorganelle-2d:split=train
-  output_dir: ./outputs/oo_2d_l_lvd
+  dataset_path: HuggingFace:repo=eminorhan/cellmap-3d:split=train
+  output_dir: ./outputs/cm_3d_l_lvd
   saveckp_freq: 20
   seed: 0
   num_workers: 8
-  OFFICIAL_EPOCH_LENGTH: 7000
+  OFFICIAL_EPOCH_LENGTH: 100
   monitor_gradient_norm: false
   chunk_schedule: []
   cache_dataset: true
@@ -54,7 +54,7 @@ train:
   cell_augmentation: false
   cell_augmentation_type: hpa
 student:
-  arch: vit_large
+  arch: vit_large_3D
   patch_size: 16
   drop_path_rate: 0.0
   layerscale: 1.0e-05
@@ -71,6 +71,7 @@ student:
   mask_k_bias: true
   in_chans: 3
   pos_embed_type: rope
+  pos_embed_rope_type: superposition
   pos_embed_rope_base: 100.0
   pos_embed_rope_min_period: null
   pos_embed_rope_max_period: null
@@ -99,11 +100,11 @@ hrft:
   enabled: false
   checkpoint_path: ''
 optim:
-  epochs: 4
+  epochs: 70
   optimizer: adamw
   weight_decay: 0.04
   weight_decay_end: 0.4
-  lr: 0.0003
+  lr: 0.001
   warmup_epochs: 1
   min_lr: 1.0e-06
   clip_grad: 1.0
@@ -124,17 +125,17 @@ crops:
   local_crops_scale:
   - 0.05
   - 0.32
-  global_crops_size: 512
-  local_crops_size: 224
+  global_crops_size: 256
+  local_crops_size: 96
   localcrops_subset_of_globalcrops: false
   share_color_jitter: false
   horizontal_flips: true
 evaluation:
-  eval_period_iterations: 7000
+  eval_period_iterations: 1000
   low_freq_every: 5
   config_files:
     high_freq: benchmark_high_frequency.yaml
     low_freq: benchmark_low_frequency.yaml
 checkpointing:
-  period: 7000
+  period: 1000
   max_to_keep: 3

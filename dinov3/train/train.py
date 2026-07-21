@@ -195,6 +195,7 @@ def do_test(cfg, model, iteration, process_group, do_low_freq=False):
     eval_dir = Path(cfg.train.output_dir) / "eval" / str(iteration)
     if distributed.is_subgroup_main_process():
         eval_dir.mkdir(parents=True, exist_ok=True)
+
     if cfg.train.sharded_eval_checkpoint:
         ckpt_path = eval_dir / "sharded_teacher_checkpoint"
         if distributed.is_subgroup_main_process():
@@ -209,8 +210,10 @@ def do_test(cfg, model, iteration, process_group, do_low_freq=False):
         for k, tensor in list(new_state_dict.items()):
             if isinstance(tensor, DTensor):
                 new_state_dict[k] = tensor.full_tensor()
+
         if not distributed.is_subgroup_main_process():
             return
+
         # save teacher checkpoint
         ckpt_path = eval_dir / "teacher_checkpoint.pth"
         torch.save({"teacher": new_state_dict}, ckpt_path)
@@ -419,7 +422,7 @@ def do_train(cfg, model, resume=False):
             return
 
         # Garbage collection (trigger manually so it happens on all ranks at the same time)
-        if (iteration + 1) % 150 == 0:
+        if (iteration + 1) % 250 == 0:
             logger.info("Garbage collection")
             gc.collect()
 

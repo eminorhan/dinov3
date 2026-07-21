@@ -36,8 +36,8 @@ ibot:
   head_hidden_dim: 2048
 train:
   batch_size_per_gpu: 16
-  dataset_path: HuggingFace:repo=eminorhan/openorganelle-2d:split=train
-  output_dir: ./outputs/oo_2d_l_lvd
+  dataset_path: HuggingFace:repo=eminorhan/cellmap-2d:split=train
+  output_dir: ./outputs/cm_2d_l_lvd
   saveckp_freq: 20
   seed: 0
   num_workers: 8

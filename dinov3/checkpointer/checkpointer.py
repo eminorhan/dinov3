@@ -90,10 +90,13 @@ def save_checkpoint(
     # and other ranks wait for the deletion to finish.
     ckpt_dir = Path(ckpt_dir)
     ckpt_dir_exists = [ckpt_dir.exists() if rank == 0 else None]
+    
     src_rank = 0
+    
     if process_group is not None:
         src_rank = torch.distributed.get_global_rank(group=process_group, group_rank=0)
     torch.distributed.broadcast_object_list(ckpt_dir_exists, src=src_rank, group=process_group)
+
     ckpt_dir_exists = ckpt_dir_exists[0]
     if ckpt_dir_exists:
         if overwrite:
@@ -127,6 +130,7 @@ def save_checkpoint(
     # Rank 0 renames the temporary directory to the final checkpoint directory. All ranks wait for the rename.
     if rank == 0:
         ckpt_dir_tmp.rename(ckpt_dir)
+
     torch.distributed.barrier()
 
     logger.info(f"Saved: {ckpt_dir}")

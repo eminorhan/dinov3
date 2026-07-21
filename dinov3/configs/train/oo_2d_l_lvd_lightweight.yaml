@@ -37,11 +37,11 @@ ibot:
 train:
   batch_size_per_gpu: 16
   dataset_path: HuggingFace:repo=eminorhan/openorganelle-2d:split=train
-  output_dir: ./outputs/oo_2d_l_lvd
+  output_dir: ./outputs/oo_2d_l_lvd_lightweight
   saveckp_freq: 20
   seed: 0
   num_workers: 8
-  OFFICIAL_EPOCH_LENGTH: 7000
+  OFFICIAL_EPOCH_LENGTH: 100
   monitor_gradient_norm: false
   chunk_schedule: []
   cache_dataset: true
@@ -99,11 +99,11 @@ hrft:
   enabled: false
   checkpoint_path: ''
 optim:
-  epochs: 4
+  epochs: 70
   optimizer: adamw
-  weight_decay: 0.04
-  weight_decay_end: 0.4
-  lr: 0.0003
+  weight_decay: 0.01
+  weight_decay_end: 0.1
+  lr: 0.001
   warmup_epochs: 1
   min_lr: 1.0e-06
   clip_grad: 1.0
@@ -111,7 +111,7 @@ optim:
   scaling_rule: sqrt_wrt_1024
   patch_embed_lr_mult: 0.2
   dino_head_wd_multiplier: 1.0
-  layerwise_decay: 0.9
+  layerwise_decay: 0.5
   multi_tensor_optim: true
   dump_fsdp_weights_path: ''
   adamw_beta1: 0.9
@@ -130,11 +130,11 @@ crops:
   share_color_jitter: false
   horizontal_flips: true
 evaluation:
-  eval_period_iterations: 7000
+  eval_period_iterations: 1000
   low_freq_every: 5
   config_files:
     high_freq: benchmark_high_frequency.yaml
     low_freq: benchmark_low_frequency.yaml
 checkpointing:
-  period: 7000
+  period: 1000
   max_to_keep: 3

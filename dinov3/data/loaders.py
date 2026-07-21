@@ -4,6 +4,7 @@
 # the terms of the DINOv3 License Agreement.
 
 import logging
+import random
 from enum import Enum
 from typing import Any, Callable, List, Optional, TypeVar
 
@@ -33,11 +34,39 @@ class HuggingFaceImageDataset(torch.utils.data.Dataset):
         split: str = "train", 
         transform = None, 
         target_transform = None, 
-        transforms = None
+        transforms = None,
+        num_volumes: Optional[int] = None,
+        seed: int = 42  # necessary for distributed training synchronization
     ):
         # Load the dataset from Hugging Face
         self.dataset = load_dataset(repo, split=split)
         
+        # Apply random volume filtering if a specific number of volumes is requested
+        if num_volumes is not None:
+            if not isinstance(num_volumes, int):
+                raise ValueError("num_volumes must be an integer or None")
+
+            # Unique volumes (fast columnar operation)
+            unique_volumes = sorted(self.dataset.unique("volume_name"))
+            num_to_keep = min(num_volumes, len(unique_volumes))
+            
+            # Seeded random selection (identical across all distributed ranks)
+            rng = random.Random(seed)
+            volumes_to_keep = set(rng.sample(unique_volumes, num_to_keep))
+            logger.info(f"Randomly selected {num_to_keep} volumes out of {len(unique_volumes)} (seed={seed}). List of volumes to keep: {volumes_to_keep}")
+
+            # SPEED OPTIMIZATION: Extract ONLY the string column.
+            # This avoids loading or decoding any image bytes from disk.
+            volume_names = self.dataset["volume_name"]
+            
+            # Find row indices that belong to the chosen volumes in memory
+            indices = [i for i, vol in enumerate(volume_names) if vol in volumes_to_keep]
+            
+            # Instantaneous metadata slice instead of a heavy disk-writing .filter()
+            self.dataset = self.dataset.select(indices)
+            
+            logger.info(f"Filtered dataset down to {len(self.dataset):,d} samples.")
+
         self.transform = transform
         self.target_transform = target_transform
         self.transforms = transforms
@@ -95,8 +124,14 @@ def _parse_dataset_str(dataset_str: str):
 
     for token in tokens[1:]:
         key, value = token.split("=")
-        assert key in ("root", "extra", "split", "repo")
+        assert key in ("root", "extra", "split", "repo", "num_volumes", "seed")
         kwargs[key] = value
+
+        # cast the integer arguments
+        if key in ("num_volumes", "seed"):
+            kwargs[key] = int(value)
+        else:
+            kwargs[key] = value
 
     if name == "ImageNet":
         class_ = ImageNet

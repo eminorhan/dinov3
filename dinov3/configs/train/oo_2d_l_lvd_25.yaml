@@ -36,8 +36,8 @@ ibot:
   head_hidden_dim: 2048
 train:
   batch_size_per_gpu: 16
-  dataset_path: HuggingFace:repo=eminorhan/openorganelle-2d:split=train
-  output_dir: ./outputs/oo_2d_l_lvd
+  dataset_path: HuggingFace:repo=eminorhan/openorganelle-2d:split=train:num_volumes=25
+  output_dir: ./outputs/oo_2d_l_lvd_25
   saveckp_freq: 20
   seed: 0
   num_workers: 8
@@ -81,7 +81,7 @@ student:
   pos_embed_rope_dtype: fp32
   fp8_enabled: False  # Convert Linear layers to operate in fp8 precision
   fp8_filter: "blocks"  # Regex that must appear in module path; empty means everything
-  use_fa4: false
+  use_fa4: False
 teacher:
   momentum_teacher: 0.992
   final_momentum_teacher: 1

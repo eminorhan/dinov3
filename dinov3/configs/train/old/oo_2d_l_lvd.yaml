@@ -40,7 +40,7 @@ train:
   output_dir: ./outputs/oo_2d_l_lvd
   saveckp_freq: 20
   seed: 0
-  num_workers: 8
+  num_workers: 10
   OFFICIAL_EPOCH_LENGTH: 7000
   monitor_gradient_norm: false
   chunk_schedule: []
@@ -81,7 +81,7 @@ student:
   pos_embed_rope_dtype: fp32
   fp8_enabled: False  # Convert Linear layers to operate in fp8 precision
   fp8_filter: "blocks"  # Regex that must appear in module path; empty means everything
-  use_fa4: false
+  use_fa4: False
 teacher:
   momentum_teacher: 0.992
   final_momentum_teacher: 1
@@ -99,11 +99,11 @@ hrft:
   enabled: false
   checkpoint_path: ''
 optim:
-  epochs: 4
+  epochs: 10
   optimizer: adamw
   weight_decay: 0.04
   weight_decay_end: 0.4
-  lr: 0.0003
+  lr: 0.0001
   warmup_epochs: 1
   min_lr: 1.0e-06
   clip_grad: 1.0

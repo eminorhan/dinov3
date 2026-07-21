@@ -139,6 +139,7 @@ def _make_dinov3_vit(
             w_2d = state_dict["patch_embed.proj.weight"].mean(dim=1, keepdim=True)  # average over RGB channels in the original checkpoint
         state_dict["patch_embed.proj.weight"] = w_2d
         ## =========================================================
+
         model.load_state_dict(state_dict, strict=True)
     else:
         model.init_weights()
@@ -220,6 +221,7 @@ def _make_dinov3_vit_3D(
             url = convert_path_or_url_to_url(weights)
 
         state_dict = torch.hub.load_state_dict_from_url(url, map_location="cpu", check_hash=check_hash)
+        
         # ====== PatchEmbed inflation ======
         assert in_chans in (1, 3), f"Number of input channels (in_chans) must be 1 or 3, but got {in_chans}."
 
@@ -229,13 +231,14 @@ def _make_dinov3_vit_3D(
             w_2d = state_dict["patch_embed.proj.weight"].mean(dim=1, keepdim=True)  # average over RGB channels in the original checkpoint
         
         # inflate the weights and normalize: (E, C, Ph, Pw) -> (E, C, Pd, Ph, Pw)
-        w_3d = w_2d.unsqueeze(2).repeat(1, 1, patch_size, 1, 1)
-        w_3d = w_3d / patch_size
+        # w_3d = w_2d.unsqueeze(2).repeat(1, 1, patch_size, 1, 1)
+        # w_3d = w_3d / patch_size
         
         # replace the 2D weights with the inflated 3D weights in the state_dict
-        state_dict["patch_embed.proj.weight"] = w_3d
+        state_dict["patch_embed.proj.weight"] = w_2d
+        # del state_dict["rope_embed.periods"]  # 3D has different rope periods than 2D
         # ===================================
-        del state_dict["rope_embed.periods"]  # 3D has different rope periods than 2D
+
         model.load_state_dict(state_dict, strict=False)
     else:
         model.init_weights()

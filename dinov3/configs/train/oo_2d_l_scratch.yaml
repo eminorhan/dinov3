@@ -37,7 +37,7 @@ ibot:
 train:
   batch_size_per_gpu: 16
   dataset_path: HuggingFace:repo=eminorhan/openorganelle-2d:split=train
-  output_dir: ./outputs/oo_2d_l_lvd
+  output_dir: ./outputs/oo_2d_l_scratch
   saveckp_freq: 20
   seed: 0
   num_workers: 8
@@ -59,7 +59,7 @@ student:
   drop_path_rate: 0.0
   layerscale: 1.0e-05
   patch_drop: 0.0
-  pretrained_weights: '/lustre/blizzard/stf218/scratch/emin/torch_hub/checkpoints/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth'
+  pretrained_weights: '' # '/lustre/blizzard/stf218/scratch/emin/torch_hub/checkpoints/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth'
   ffn_layer: mlp
   ffn_ratio: 4.0
   resume_from_teacher_chkpt: ''
@@ -81,7 +81,7 @@ student:
   pos_embed_rope_dtype: fp32
   fp8_enabled: False  # Convert Linear layers to operate in fp8 precision
   fp8_filter: "blocks"  # Regex that must appear in module path; empty means everything
-  use_fa4: false
+  use_fa4: False
 teacher:
   momentum_teacher: 0.992
   final_momentum_teacher: 1
